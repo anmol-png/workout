@@ -1,5 +1,11 @@
 # Training Program — 5-Day PPLUL + Progress Tracker
 
+> ### 👉 New here? Read **[START-HERE.md](START-HERE.md)** — just the steps, no theory.
+> Everything else in this repo is the reasoning behind those steps.
+
+---
+
+
 A hypertrophy-led 5-day program (size first, blended with strength, athleticism and conditioning),
 built around: **26M · 82 kg · fully equipped gym · intermediate upper body, lagging legs · 6–7 h
 sleep.** Legs are the declared priority and get 35 of the 90 weekly working sets — 39 % of
