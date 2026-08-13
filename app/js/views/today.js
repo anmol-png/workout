@@ -10,7 +10,9 @@ import {
   DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise,
 } from '../program.js';
 import * as store from '../store.js';
-import { computeNextTarget, describePerformance, ACTION } from '../progression.js';
+import {
+  computeNextTarget, describePerformance, projectSets, describeProjection, ACTION,
+} from '../progression.js';
 import { shouldAutoregulate, applyAutoregulation, autoregulationPlan } from '../readiness.js';
 import { isPersonalRecord, e1RM } from '../stats.js';
 import { startTimer } from '../timer.js';
@@ -231,6 +233,8 @@ function exerciseCard(baseEx, session) {
   const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
   const last = history.length ? history[history.length - 1] : null;
   const target = computeNextTarget(history, ex);
+  // Per-set expectation rather than the same number repeated — reps fall as fatigue builds.
+  const projection = projectSets(history, ex, target);
   const entry = session.entries.find((e) => e.exerciseId === ex.id);
   const allDone = entry && entry.sets.length >= ex.sets && entry.sets.slice(0, ex.sets).every((s) => s.done);
 
@@ -252,7 +256,7 @@ function exerciseCard(baseEx, session) {
           placeholder="${isBW ? 'BW' : (target.weight != null ? U.snapNum(target.weight, ex) : U.unitFor(ex.id))}"
           value="${s.weight == null ? '' : U.num(s.weight, ex.id)}" aria-label="Set ${i + 1} weight">
         <input type="number" inputmode="numeric" step="1" data-f="reps"
-          placeholder="${target.reps || ex.repRange[0]}"
+          placeholder="${projection[i]?.reps ?? target.reps ?? ex.repRange[0]}"
           value="${s.reps ?? ''}" aria-label="Set ${i + 1} reps">
         <input type="number" inputmode="decimal" step="0.5" min="5" max="10" data-f="rpe"
           placeholder="RPE ${ex.rpe[1]}"
@@ -284,6 +288,10 @@ function exerciseCard(baseEx, session) {
         <span class="grow">${last
           ? `Last: <b>${escapeHtml(describePerformance(last, ex))}</b> — ${escapeHtml(target.note)}`
           : escapeHtml(target.note)}</span>
+      </div>
+      <div class="ex-proj">
+        Expect <b>${describeProjection(projection)}</b>
+        <span class="dim">· ${projection[0].note === 'from your history' ? 'from your own drop-off' : 'estimated'}</span>
       </div>
       <div class="sets">
         <div class="sets-head"><span></span><span>${isBW ? `+${U.unitFor(ex.id)}`
@@ -422,7 +430,7 @@ function toggleSet(row, session) {
   if (set.reps == null) {
     const history = store.historyFor(exId).filter((h) => h.sessionId !== session.id);
     const t = computeNextTarget(history, ex);
-    set.reps = t.reps || ex.repRange[0];
+    set.reps = projectSets(history, ex, t)[i]?.reps || t.reps || ex.repRange[0];
     // Snap the suggestion, then convert back — so what gets stored is exactly what the
     // placeholder told you to load, not a number the equipment can't make.
     if (set.weight == null && t.weight != null) set.weight = U.toKg(U.snap(t.weight, ex), ex.id);
@@ -460,15 +468,19 @@ function prefill(ex, session) {
   const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
   const t = computeNextTarget(history, ex);
   if (t.weight == null) return toast('No target yet — this one needs calibrating first.');
+  const projection = projectSets(history, ex, t);
   const entry = entryFor(session, ex.id);
   for (let i = 0; i < ex.sets; i++) {
     const s = setAt(entry, i);
-    if (!s.done) { s.weight = U.toKg(U.snap(t.weight, ex), ex.id); s.reps = t.reps; }
+    // Fill the per-set projection, not the same number four times. It's a starting point —
+    // overwrite any of it as the session tells you more.
+    if (!s.done) { s.weight = U.toKg(U.snap(t.weight, ex), ex.id); s.reps = projection[i].reps; }
   }
   store.upsertSession(session);
   rerender();
   const isBW = ex.unit === 'bodyweight';
-  toast(isBW && !t.weight ? `Filled bodyweight × ${t.reps}` : `Filled ${U.snapW(t.weight, ex)} × ${t.reps}`);
+  const reps = describeProjection(projection);
+  toast(isBW && !t.weight ? `Filled bodyweight × ${reps}` : `Filled ${U.snapW(t.weight, ex)} × ${reps}`);
 }
 
 function markFinisher(ex, session) {

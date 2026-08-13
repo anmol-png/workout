@@ -578,6 +578,54 @@ section('Sessions — set counting and duplicate repair');
   store.resetAll();
 }
 
+// ============================================================ per-set projection
+section('Per-set projection — reps fall as fatigue builds');
+{
+  const { projectSets, describeProjection } = await import(`${APP}/progression.js`);
+
+  const squat = getExercise('back-squat');       // 4×5–8, 180 s rest
+  const lateral = getExercise('db-lateral-raise'); // 3×12–20, 15 s (superset)
+
+  // No history: modelled from rest period, distributed around the middle of the range.
+  const p1 = projectSets([], squat, computeNextTarget([], squat));
+  eq('one entry per working set', p1.length, squat.sets);
+  ok('reps never ascend', p1.every((x, i) => i === 0 || x.reps <= p1[i - 1].reps), describeProjection(p1));
+  ok('stays inside the rep range', p1.every((x) => x.reps >= 5 && x.reps <= 8), describeProjection(p1));
+  ok('not the same number repeated', new Set(p1.map((x) => x.reps)).size > 1, describeProjection(p1));
+  eq('weight is constant across sets', new Set(p1.map((x) => x.weight)).size, 1);
+
+  // Short rest should decay harder than long rest.
+  const pl = projectSets([], lateral, computeNextTarget([], lateral));
+  const spread = (a) => a[0].reps - a[a.length - 1].reps;
+  ok('20 s rest drops off more than 180 s', spread(pl) > spread(p1), `${describeProjection(pl)} vs ${describeProjection(p1)}`);
+
+  // With history it learns the athlete's OWN curve.
+  const hist = [
+    { sets: [{ weight: 9, reps: 15 }, { weight: 9, reps: 12 }, { weight: 9, reps: 12 }] },
+    { sets: [{ weight: 9, reps: 15 }, { weight: 9, reps: 12 }, { weight: 9, reps: 12 }] },
+  ];
+  const p2 = projectSets(hist, lateral, computeNextTarget(hist, lateral));
+  eq('flagged as learned, not modelled', p2[0].note, 'from your history');
+  ok('mirrors his 15/12/12 shape', p2[1].reps === p2[2].reps && p2[0].reps > p2[1].reps, describeProjection(p2));
+
+  // Ascending reps mean the weight was too light — never project upward from that.
+  const rising = [
+    { sets: [{ weight: 30, reps: 10 }, { weight: 30, reps: 12 }, { weight: 30, reps: 14 }] },
+    { sets: [{ weight: 30, reps: 10 }, { weight: 30, reps: 12 }, { weight: 30, reps: 14 }] },
+  ];
+  const p3 = projectSets(rising, lateral, computeNextTarget(rising, lateral));
+  ok('ascending history never projects upward', p3.every((x, i) => i === 0 || x.reps <= p3[i - 1].reps), describeProjection(p3));
+
+  // Sessions where the weight changed say nothing about fatigue and must be ignored.
+  const mixed = [
+    { sets: [{ weight: 25, reps: 12 }, { weight: 30, reps: 8 }, { weight: 25, reps: 8 }] },
+    { sets: [{ weight: 25, reps: 12 }, { weight: 30, reps: 8 }, { weight: 25, reps: 8 }] },
+  ];
+  eq('varying-weight history is not used as a curve', projectSets(mixed, lateral, computeNextTarget(mixed, lateral))[0].note, 'estimated');
+
+  eq('describeProjection formats', describeProjection([{ reps: 8 }, { reps: 7 }, { reps: 6 }]), '8 / 7 / 6');
+}
+
 // ============================================================ service worker precache
 section('Service worker — precache list matches the file tree');
 {

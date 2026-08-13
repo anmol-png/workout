@@ -477,3 +477,29 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .ex-note {
   margin: -2px 14px 8px; font-size: 11.5px; color: var(--accent);
 }
+
+/* Per-set projection line */
+.ex-proj {
+  margin: -4px 14px 9px; padding: 6px 10px;
+  background: var(--surface-2); border-radius: 7px;
+  font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.ex-proj b { color: var(--text); font-size: 12.5px; letter-spacing: .02em; }
+
+/* ---------------------------------------------------------------- history */
+
+.hist { align-items: flex-start; }
+.hist-preview {
+  font-size: 11.5px; color: var(--dim); margin-top: 3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hist-chev { color: var(--dim); font-size: 20px; align-self: center; flex-shrink: 0; }
+
+.sess-ex { padding: 12px 0; border-top: 1px solid var(--line); }
+.sess-tbl { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+.sess-tbl td { padding: 5px 0; font-variant-numeric: tabular-nums; }
+.sess-tbl td:first-child { width: 20px; }
+.sess-tbl td:nth-child(2) { width: 32%; }
+.sess-tbl td:nth-child(3) { width: 24%; }
+.sess-tbl td:last-child { text-align: right; }
+.sess-tbl tr.best td { color: var(--pr); }

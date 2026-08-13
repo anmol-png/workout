@@ -7,7 +7,9 @@
  *   3. Is bodyweight moving at the target rate?
  */
 
-import { EXERCISES, MUSCLE_LABELS, VOLUME_TARGETS, getExercise } from '../program.js';
+import {
+  EXERCISES, MUSCLE_LABELS, VOLUME_TARGETS, getExercise, resolveExercise,
+} from '../program.js';
 import * as store from '../store.js';
 import {
   weeklyVolume, weeklySetCounts, weekStart, addDays, e1RMSeries, bestE1RM,
@@ -84,8 +86,14 @@ export function render(root) {
   </div>`);
 
   // ── Strength progression.
-  const lifts = KEY_LIFTS.map((id) => ({ ex: getExercise(id), history: store.historyFor(id) }))
-    .filter((l) => l.ex && l.history.length);
+  const lifts = KEY_LIFTS
+    .map((id) => {
+      const base = getExercise(id);
+      return base
+        ? { ex: resolveExercise(base, store.getSubstitution(id)), history: store.historyFor(id) }
+        : null;
+    })
+    .filter((l) => l && l.history.length);
 
   if (lifts.length) {
     if (!lifts.some((l) => l.ex.id === selectedLift)) selectedLift = lifts[0].ex.id;
@@ -143,7 +151,7 @@ export function render(root) {
   if (prs.length) {
     html.push(`<div class="card">
       <div class="chart-title">Recent PRs</div>
-      <div class="chart-sub">Best estimated 1RM per lift</div>
+      <div class="chart-sub">Best estimated 1RM per lift · needs 2+ sessions</div>
       ${prs.map((p) => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--line)">
         <span class="small">${escapeHtml(p.name)}</span>
         <span class="row" style="gap:8px">
@@ -170,16 +178,20 @@ export function render(root) {
 
 function recentPRs() {
   const out = [];
-  for (const ex of EXERCISES) {
-    if (ex.isFinisher) continue;
-    const history = store.historyFor(ex.id);
+  for (const base of EXERCISES) {
+    if (base.isFinisher) continue;
+    // Show what was actually PERFORMED. Reporting a PR on "Weighted Dip" when the slot was
+    // swapped to Incline DB Press is simply wrong — you never did that lift.
+    const ex = resolveExercise(base, store.getSubstitution(base.id));
+    const history = store.historyFor(base.id);
+    // Needs at least two sessions: a single session has nothing to be a record against.
     if (history.length < 2) continue;
     let best = 0; let bestDate = null;
     for (const h of history) {
       const v = bestE1RM(h.sets);
       if (v > best) { best = v; bestDate = h.date; }
     }
-    if (best > 0) out.push({ id: ex.id, name: ex.name, value: best, date: bestDate });
+    if (best > 0) out.push({ id: base.id, name: ex.name, value: best, date: bestDate });
   }
   return out.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 }

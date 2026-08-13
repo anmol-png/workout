@@ -237,3 +237,83 @@ export function describePerformance(perf, exercise = null) {
   if (allSame) return `${label(w)} × ${reps}`;
   return perf.sets.map((s) => `${label(Number(s.weight) || 0)}×${s.reps}`).join(', ');
 }
+
+// ---------------------------------------------------------------- per-set projection
+
+/**
+ * Default rep drop-off per set, by how long you rest.
+ *
+ * Reps fall across sets because fatigue accumulates faster than it clears. Longer rest recovers
+ * more of it, so heavy compounds hold their reps far better than a 20-second superset does.
+ */
+function defaultDecay(restSec) {
+  const rest = Math.max(Number(restSec) || 0, 60);
+  if (rest >= 150) return 0.94;   // ~6% per set — heavy compounds, near-full recovery
+  if (rest >= 90) return 0.90;    // ~10% — accessories
+  return 0.85;                    // ~15% — supersets and short rest
+}
+
+/**
+ * The athlete's OWN observed drop-off, when there's enough history to see it.
+ *
+ * Only sessions where the weight stayed constant are usable — if the load changed between sets,
+ * the rep change says nothing about fatigue. Ratios are clamped at 1.0 because sets that went UP
+ * mean the weight was too light and you warmed into it, not that fatigue improves performance.
+ */
+function observedDecay(history, nSets) {
+  const samples = Array.from({ length: nSets }, () => []);
+
+  for (const h of history) {
+    const sets = h.sets;
+    if (sets.length < 2) continue;
+    const w0 = Number(sets[0].weight) || 0;
+    if (!sets.every((x) => (Number(x.weight) || 0) === w0)) continue;
+    const first = Number(sets[0].reps) || 0;
+    if (!first) continue;
+    sets.forEach((x, i) => {
+      if (i < nSets && x.reps) samples[i].push(Math.min(1, (Number(x.reps) || 0) / first));
+    });
+  }
+
+  return samples.map((arr) => (arr.length >= 2
+    ? arr.reduce((a, b) => a + b, 0) / arr.length
+    : null));
+}
+
+/**
+ * What you can realistically expect on EACH set — not the same number repeated.
+ *
+ * The prescription is one weight and one rep goal; reality is that set 4 gives you fewer reps
+ * than set 1. This projects the drop-off so the numbers in front of you are honest, using your
+ * own history where it exists and a rest-based model where it doesn't.
+ *
+ * @returns {Array<{weight:number|null, reps:number, note:string}>} one entry per working set
+ */
+export function projectSets(history, exercise, target) {
+  const n = exercise.sets;
+  const [lo, hi] = exercise.repRange;
+  const observed = observedDecay(history, n);
+  const decay = defaultDecay(exercise.restSec);
+
+  // What the AVERAGE set should come to. On a calibration session there's no earned target yet,
+  // so aim at the middle of the range — that's the honest "let's find out what you've got".
+  const mean = target.action === ACTION.CALIBRATE ? (lo + hi) / 2 : (target.reps || lo);
+
+  // Shape of the drop-off across sets, then scaled so its average lands on `mean`. Distributing
+  // around the target — rather than repeating it — is the whole point: set 1 is above it, the
+  // last set below, which is what actually happens under fatigue.
+  const shape = Array.from({ length: n }, (_, i) => observed[i] ?? decay ** i);
+  const avgShape = shape.reduce((a, b) => a + b, 0) / n;
+  const scale = avgShape > 0 ? mean / avgShape : 1;
+
+  return shape.map((r, i) => ({
+    weight: target.weight,
+    reps: Math.min(hi, Math.max(lo, Math.round(r * scale))),
+    note: observed[i] != null ? 'from your history' : 'estimated',
+  }));
+}
+
+/** "8 / 8 / 7 / 7" — the projection as a single readable line. */
+export function describeProjection(projection) {
+  return projection.map((p) => p.reps).join(' / ');
+}
