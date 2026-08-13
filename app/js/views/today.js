@@ -40,6 +40,8 @@ function resolved(ex) {
 }
 
 function defaultDay() {
+  const pinned = store.getScheduledDay(store.todayISO());
+  if (pinned) return pinned;
   const scheduled = dayForWeekday(new Date().getDay());
   return scheduled ? scheduled.key : 'push';
 }
@@ -65,9 +67,18 @@ export function render(root) {
       ${d.name}${hasSessionThisWeek(d.key) ? '<span class="dot"></span>' : ''}
     </button>`).join('')}</div>`);
 
-  if (!scheduled) {
+  const pinned = store.getScheduledDay(iso);
+  if (pinned && (!scheduled || scheduled.key !== pinned)) {
+    const d = getDay(pinned);
     html.push(`<div class="banner accent">
-      <b>Today is a rest day.</b> Walk, eat, sleep. Pick a session above if you're shifting the week around.
+      <b>${escapeHtml(d ? d.name : pinned)} pinned to today.</b>
+      ${scheduled ? `The program says ${escapeHtml(scheduled.name)}.` : 'Today is normally a rest day.'}
+      <div class="mt"><button class="btn sm" data-act="unpin">Back to the program</button></div>
+    </div>`);
+  } else if (!scheduled) {
+    html.push(`<div class="banner accent">
+      <b>Today is a rest day.</b> Walk, eat, sleep. Pick a session above to train anyway —
+      it stays pinned to today.
     </div>`);
   }
 
@@ -296,6 +307,9 @@ function wire(root, session, exercises) {
     b.addEventListener('click', () => {
       selectedDay = b.dataset.day;
       autoOn = false;
+      // Pin it to today. Reopening the app should show what you actually chose to train,
+      // not snap back to whatever the calendar says.
+      store.setScheduledDay(store.todayISO(), b.dataset.day);
       window.dispatchEvent(new CustomEvent('view:rerender'));
     });
   });
@@ -315,6 +329,11 @@ function wire(root, session, exercises) {
     if (act === 'prefill' && ex) return prefill(ex, session);
     if (act === 'swap' && ex) return showSwap(ex);
     if (act === 'finisher-done' && ex) return markFinisher(ex, session);
+    if (act === 'unpin') {
+      store.setScheduledDay(store.todayISO(), null);
+      selectedDay = null;
+      return rerender();
+    }
     if (act === 'warmup') {
       warmupOpen = !warmupOpen;
       return rerender();

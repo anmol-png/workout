@@ -41,6 +41,12 @@ export const WARMUP = {
     ['Band pull-aparts × 20 + shoulder circles', 'Shoulders are doing their second session this week — warm them properly'],
     ['Scap push-ups × 10, scap pull-ups × 8', 'Sets the shoulder blades for both pressing and pulling'],
   ],
+  arms: [
+    ['3 min easy bike or rower', 'Core temperature and blood flow'],
+    ['Band pull-aparts × 20', 'Shoulders and upper back before pressing and curling'],
+    ['Elbow circles + light band curls × 15', 'Warms the elbow joint — the one that complains on heavy curls and extensions'],
+    ['1–2 light sets of the close-grip bench', 'Grooves the pattern before loading it'],
+  ],
   lower: [
     ['3–4 min easy bike', 'Core temperature'],
     ['Glute bridges × 15, then single-leg × 8/side', 'Wakes the glutes before they are the day’s prime mover — the most important item here'],

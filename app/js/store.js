@@ -51,6 +51,12 @@ function emptyState() {
      * pulldown. A single global unit can't describe that, so each exercise may override it.
      */
     exerciseUnits: {},
+    /**
+     * isoDate -> dayKey. Life moves training days around: a missed session, a day you don't
+     * fancy, an extra optional one. Pinning a session to a date lets the week be rearranged
+     * without editing the program itself.
+     */
+    schedule: {},
     meta: {
       lastBackupAt: null,
       createdAt: new Date().toISOString(),
@@ -86,6 +92,7 @@ function migrate(data) {
     dailyLogs: data.dailyLogs || {},
     substitutions: data.substitutions || {},
     exerciseUnits: data.exerciseUnits || {},
+    schedule: data.schedule || {},
     sessions: dedupeSessions(Array.isArray(data.sessions) ? data.sessions : []),
   };
   merged.schemaVersion = SCHEMA_VERSION;
@@ -254,6 +261,17 @@ export function getDailyLogs() {
 
 export function getSubstitution(exerciseId) {
   return state.substitutions[exerciseId] || null;
+}
+
+/** The session pinned to a date, if any. */
+export function getScheduledDay(iso) {
+  return state.schedule[iso] || null;
+}
+
+export function setScheduledDay(iso, dayKey) {
+  if (dayKey) state.schedule[iso] = dayKey;
+  else delete state.schedule[iso];
+  commit();
 }
 
 /** null = follow the global default. */

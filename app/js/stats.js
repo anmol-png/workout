@@ -5,7 +5,7 @@
  * source of truth (the logged sets) and means changing a formula never requires a migration.
  */
 
-import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES } from './program.js';
+import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES, DAYS } from './program.js';
 import { getSessions, getDailyLogs, todayISO, parseISO, daysBetween } from './store.js';
 
 // ---------------------------------------------------------------- estimated 1RM
@@ -108,8 +108,11 @@ export function weeklyVolume(weekStartISO) {
 /** What the program prescribes, if every set is completed. The baseline the chart compares against. */
 export function plannedWeeklyVolume() {
   const totals = Object.fromEntries(MUSCLES.map((m) => [m, 0]));
+  // Optional sessions (Arms) are extras you may or may not run, so they don't belong in the
+  // program's baseline — counting them would overstate what the plan actually prescribes.
+  const optional = new Set(DAYS.filter((d) => d.optional).map((d) => d.key));
   for (const ex of EXERCISES) {
-    if (ex.isFinisher) continue;
+    if (ex.isFinisher || optional.has(ex.day)) continue;
     for (const m of ex.muscles.primary) totals[m] += ex.sets;
     for (const m of ex.muscles.secondary) totals[m] += ex.sets * 0.5;
   }

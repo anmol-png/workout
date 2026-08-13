@@ -38,10 +38,12 @@ const section = (s) => console.log(`\n${s}`);
 // ============================================================ program integrity
 section('Program data');
 {
-  ok('32 exercises (incl. 2 finishers)', EXERCISES.length === 32, `got ${EXERCISES.length}`);
+  ok('38 exercises (incl. 2 finishers + optional Arms)', EXERCISES.length === 38, `got ${EXERCISES.length}`);
   const ids = EXERCISES.map((e) => e.id);
   eq('all exercise ids unique', ids.length - new Set(ids).size, 0);
-  eq('5 training days', DAYS.length, 5);
+  eq('6 sessions available', DAYS.length, 6);
+  eq('5 of them are programmed weekdays', DAYS.filter((d) => d.weekday).length, 5);
+  eq('Arms is the optional extra', DAYS.filter((d) => d.optional).map((d) => d.key), ['arms']);
 
   for (const d of DAYS) {
     const list = exercisesForDay(d.key);
@@ -429,6 +431,11 @@ section('Warm-up — ramp sets');
   for (const d of DAYS) {
     ok(`${d.key} has a general warm-up`, (WARMUP[d.key] || []).length >= 3);
   }
+
+  // An optional session must not inflate the program's prescribed baseline.
+  const planned = statsMod.plannedWeeklyVolume();
+  ok('optional Arms excluded from planned volume', planned.chest === 13, `chest ${planned.chest}`);
+  ok('…biceps too', planned.biceps === 15, `biceps ${planned.biceps}`);
 
   const squat = getExercise('back-squat');
   // Ramp count scales with how far there is to climb — a light bar needs fewer steps.

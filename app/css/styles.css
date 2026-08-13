@@ -174,7 +174,8 @@ button { cursor: pointer; border: none; background: none; }
 
 /* ---------------------------------------------------------------- today: session picker */
 
-.daypick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 14px; }
+/* 6 sessions (5 programmed + optional Arms) — two rows of three fits a phone. */
+.daypick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
 .daypick button {
   padding: 9px 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line);
   font-size: 12px; font-weight: 650; color: var(--muted);

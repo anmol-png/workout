@@ -47,6 +47,9 @@ export const DAYS = [
   { key: 'legs',  name: 'Legs',  code: 'LEGS',  subtitle: 'Quad-dominant · Squat anchor',   weekday: 3, doc: '03-Legs.md'  },
   { key: 'upper', name: 'Upper', code: 'UPPER', subtitle: 'Chest · Back · Delts · Arms',    weekday: 5, doc: '04-Upper.md' },
   { key: 'lower', name: 'Lower', code: 'LOWER', subtitle: 'Hinge · Posterior · Unilateral', weekday: 6, doc: '05-Lower.md' },
+  // Optional extra — no fixed weekday. Arms and side delts are the cheapest muscles to add a
+  // session for: small, fast-recovering, and they don't compete with leg recovery.
+  { key: 'arms',  name: 'Arms',  code: 'ARMS',  subtitle: 'Biceps · Triceps · Side Delts', weekday: null, optional: true },
 ];
 
 /**
@@ -443,6 +446,74 @@ export const EXERCISES = [
       '5 minutes. The lifting is the priority.',
     ],
     substitutes: ['Bike Intervals', 'Incline Treadmill'],
+  },
+  // ---------------------------------------------------------------- ARMS (optional extra)
+  {
+    id: 'arms-close-grip-bench', day: 'arms', order: 'A', name: 'Close-Grip Bench Press',
+    muscles: { primary: ['triceps'], secondary: ['chest', 'frontDelts'] },
+    sets: 3, repRange: [6, 10], rpe: [8, 8], restSec: 150,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 40,
+    cues: [
+      'Hands roughly shoulder-width — NOT narrower, that just hurts the wrists.',
+      'Elbows tucked close to the body. Bar to the lower chest.',
+      'The one heavy compound of the day — it goes first while you\u2019re fresh.',
+    ],
+    substitutes: ['Weighted Dip', 'Machine Chest Press', 'Bench Dips'],
+  },
+  {
+    id: 'arms-ez-curl', day: 'arms', order: 'B', name: 'EZ-Bar Curl',
+    muscles: { primary: ['biceps'], secondary: [] },
+    sets: 3, repRange: [8, 12], rpe: [8, 9], restSec: 120,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 27.5,
+    cues: [
+      'Elbows pinned to your sides. No swinging, no leaning back.',
+      'Full extension at the bottom — that\u2019s where the growth is.',
+    ],
+    substitutes: ['Barbell Curl', 'Cable Curl', 'DB Curl'],
+  },
+  {
+    id: 'arms-overhead-ext', day: 'arms', order: 'C1', supersetGroup: 'C', name: 'Overhead Rope Triceps Ext',
+    muscles: { primary: ['triceps'], secondary: [] },
+    sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 20,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 17.5,
+    cues: [
+      'Overhead is the only position that fully stretches the long head.',
+      'Elbows forward and fixed. Deep stretch, full lockout.',
+    ],
+    substitutes: ['EZ-Bar Skullcrusher', 'DB Overhead Extension'],
+  },
+  {
+    id: 'arms-incline-curl', day: 'arms', order: 'C2', supersetGroup: 'C', name: 'Incline DB Curl',
+    muscles: { primary: ['biceps'], secondary: [] },
+    sets: 3, repRange: [10, 12], rpe: [9, 9], restSec: 90,
+    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 12,
+    cues: [
+      'Incline puts the upper arm behind the torso = biceps under stretch.',
+      'Elbows stay back. Slow negative.',
+    ],
+    substitutes: ['DB Curl', 'Cable Curl'],
+  },
+  {
+    id: 'arms-lateral-raise', day: 'arms', order: 'D1', supersetGroup: 'D', name: 'Cable Lateral Raise',
+    muscles: { primary: ['sideDelts'], secondary: [] },
+    sets: 3, repRange: [12, 20], rpe: [9, 9], restSec: 20,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 7.5,
+    cues: [
+      'Side delts are here because they recover fast and add visible width.',
+      'Lead with the elbow, stop at shoulder height. Go lighter than you want to.',
+    ],
+    substitutes: ['DB Lateral Raise', 'Machine Lateral Raise'],
+  },
+  {
+    id: 'arms-hammer-curl', day: 'arms', order: 'D2', supersetGroup: 'D', name: 'Cable Rope Hammer Curl',
+    muscles: { primary: ['biceps'], secondary: [] },
+    sets: 2, repRange: [12, 15], rpe: [9, 9], restSec: 75,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 22.5,
+    cues: [
+      'Neutral grip hits the brachialis, which sits under the biceps and pushes it up.',
+      'Elbows fixed at your sides.',
+    ],
+    substitutes: ['DB Hammer Curl'],
   },
 ];
 
