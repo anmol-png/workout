@@ -124,8 +124,10 @@ export function earnedIncrement(sets, exercise) {
  * @param {string} exerciseId
  * @returns {{action:string, weight:number|null, reps:number, note:string, lastWeight:number|null}}
  */
-export function computeNextTarget(history, exerciseId) {
-  const ex = getExercise(exerciseId);
+export function computeNextTarget(history, exerciseOrId) {
+  // Accepts a resolved exercise object so a SUBSTITUTED slot uses the substitute's equipment
+  // and starting load, not the original's.
+  const ex = typeof exerciseOrId === 'string' ? getExercise(exerciseOrId) : exerciseOrId;
   if (!ex) return { action: ACTION.CALIBRATE, weight: null, reps: 0, note: '', lastWeight: null };
 
   const [lo, hi] = ex.repRange;

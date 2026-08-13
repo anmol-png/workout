@@ -444,3 +444,6 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
   transition: background .15s ease, color .15s ease;
 }
 .unit-toggle button[aria-pressed="true"] { background: var(--accent); color: #06101f; }
+
+/* A <button> may not contain block elements — the inner spans are display:block instead. */
+.wu-toggle { width: 100%; text-align: left; }

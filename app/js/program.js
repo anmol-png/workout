@@ -446,6 +446,110 @@ export const EXERCISES = [
   },
 ];
 
+/**
+ * Equipment metadata for substitute exercises whose gear differs from the exercise they replace.
+ *
+ * Swapping used to change only the NAME, so replacing Weighted Dip with Incline Barbell Press
+ * left the slot marked `bodyweight` — it kept showing "BW" and offered no starting weight.
+ * A substitute is a different piece of equipment, so it needs its own unit and starting load.
+ *
+ * Anything not listed here inherits the parent exercise's equipment, which is correct for
+ * like-for-like swaps (Seated Leg Curl → Lying Leg Curl).
+ */
+const SUBSTITUTE_META = {
+  // → barbell
+  'Incline Barbell Press': { unit: 'barbell', startLoad: 35 },
+  'Standing Barbell OHP': { unit: 'barbell', startLoad: 25 },
+  'EZ-Bar Skullcrusher': { unit: 'barbell', startLoad: 15 },
+  'Front Squat': { unit: 'barbell', startLoad: 35 },
+  'Safety Bar Squat': { unit: 'barbell', startLoad: 45 },
+  'Good Morning': { unit: 'barbell', startLoad: 30 },
+  'Pendlay Row': { unit: 'barbell', startLoad: 40 },
+  'T-Bar Row': { unit: 'barbell', startLoad: 30 },
+  'Seal Row': { unit: 'barbell', startLoad: 30 },
+  'Barbell Curl': { unit: 'barbell', startLoad: 20 },
+  'Trap-Bar Deadlift': { unit: 'barbell', startLoad: 60 },
+
+  // → dumbbell
+  'Dumbbell Bench Press': { unit: 'dumbbell', startLoad: 18 },
+  'DB Overhead Extension': { unit: 'dumbbell', startLoad: 8 },
+  'DB Lateral Raise': { unit: 'dumbbell', startLoad: 6 },
+  'DB Curl': { unit: 'dumbbell', startLoad: 10 },
+  'DB Hammer Curl': { unit: 'dumbbell', startLoad: 10 },
+  'Single-arm DB Row': { unit: 'dumbbell', startLoad: 20 },
+  'Bent-over DB Reverse Fly': { unit: 'dumbbell', startLoad: 5 },
+  'Dumbbell RDL': { unit: 'dumbbell', startLoad: 20 },
+  'Walking Lunges': { unit: 'dumbbell', startLoad: 10 },
+  'Step-ups': { unit: 'dumbbell', startLoad: 10 },
+  'Reverse Lunges': { unit: 'dumbbell', startLoad: 10 },
+
+  // → machine / cable
+  'Machine Chest Press': { unit: 'machine', startLoad: 35 },
+  'Incline Machine Press': { unit: 'machine', startLoad: 30 },
+  'Machine Shoulder Press': { unit: 'machine', startLoad: 25 },
+  'Machine Lateral Raise': { unit: 'machine', startLoad: 15 },
+  'Cable Curl': { unit: 'machine', startLoad: 15 },
+  'Lat Pulldown': { unit: 'machine', startLoad: 45 },
+  'Assisted Pull-up': { unit: 'machine', startLoad: 30 },
+  'Assisted Dip': { unit: 'machine', startLoad: 30 },
+  'Neutral-grip Pulldown': { unit: 'machine', startLoad: 45 },
+  'Chest-Supported Row': { unit: 'machine', startLoad: 35 },
+  'Chest-Supported Machine Row': { unit: 'machine', startLoad: 35 },
+  'Machine Row': { unit: 'machine', startLoad: 35 },
+  'Pec Deck Fly': { unit: 'machine', startLoad: 25 },
+  'Cable Fly': { unit: 'machine', startLoad: 12 },
+  'Face Pull': { unit: 'machine', startLoad: 15 },
+  'Hack Squat': { unit: 'machine', startLoad: 60 },
+  'Pendulum Squat': { unit: 'machine', startLoad: 40 },
+  'Glute Bridge Machine': { unit: 'machine', startLoad: 40 },
+  'Cable Crunch': { unit: 'machine', startLoad: 25 },
+  'Smith Machine Calf Raise': { unit: 'machine', startLoad: 40 },
+  'Leg Press Calf Raise': { unit: 'machine', startLoad: 60 },
+  'Leg Press Calf Raise (bent knee)': { unit: 'machine', startLoad: 60 },
+  'Cable Lateral Raise': { unit: 'machine', startLoad: 8 },
+  'Single-arm Pushdown': { unit: 'machine', startLoad: 10 },
+  'Single-arm Cable Row': { unit: 'machine', startLoad: 20 },
+
+  // → bodyweight
+  'Bench Dips': { unit: 'bodyweight', startLoad: 0 },
+  'Pull-up': { unit: 'bodyweight', startLoad: 0 },
+  'Nordic Curl': { unit: 'bodyweight', startLoad: 0 },
+  'Sissy Squat': { unit: 'bodyweight', startLoad: 0 },
+  '45° Back Extension': { unit: 'bodyweight', startLoad: 0 },
+  'Single-leg Hip Thrust': { unit: 'bodyweight', startLoad: 0 },
+  'Hanging Knee Raise': { unit: 'bodyweight', startLoad: 0 },
+  'Bike Intervals': { unit: 'none', startLoad: null },
+  'Incline Treadmill': { unit: 'none', startLoad: null },
+};
+
+const INCREMENT_BY_UNIT = {
+  barbell: INCREMENT.BARBELL,
+  dumbbell: INCREMENT.DUMBBELL,
+  machine: INCREMENT.MACHINE,
+  bodyweight: INCREMENT.BODYWEIGHT,
+  none: 0,
+};
+
+/**
+ * Apply a substitution, returning an exercise with the substitute's own equipment.
+ *
+ * Keeps the original `id` so logged history stays attached to the slot — you can swap back and
+ * forth without losing anything.
+ */
+export function resolveExercise(ex, subName) {
+  if (!ex || !subName || subName === ex.name) return ex;
+  const meta = SUBSTITUTE_META[subName] || {};
+  const unit = meta.unit ?? ex.unit;
+  return {
+    ...ex,
+    name: subName,
+    unit,
+    startLoad: 'startLoad' in meta ? meta.startLoad : ex.startLoad,
+    increment: meta.increment ?? INCREMENT_BY_UNIT[unit] ?? ex.increment,
+    _substituted: true,
+  };
+}
+
 // ---------------------------------------------------------------- lookups
 
 const BY_ID = new Map(EXERCISES.map((e) => [e.id, e]));

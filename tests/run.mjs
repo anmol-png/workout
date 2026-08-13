@@ -451,6 +451,71 @@ section('Warm-up — ramp sets');
   ok('a late accessory never gets a ramp', !needsRamp(push[4], 4, push));
 }
 
+// ============================================================ substitutions
+section('Substitutions — swapping changes the equipment, not just the name');
+{
+  const { resolveExercise, getExercise } = await import(`${APP}/program.js`);
+  const { computeNextTarget, ACTION } = await import(`${APP}/progression.js`);
+
+  const dip = getExercise('weighted-dip');
+  eq('dip is bodyweight', dip.unit, 'bodyweight');
+  eq('dip starts at 0 added', dip.startLoad, 0);
+
+  // THE BUG: swapping to a barbell lift used to keep unit:'bodyweight', so the slot still
+  // showed "BW" and offered no starting weight.
+  const swapped = resolveExercise(dip, 'Incline Barbell Press');
+  eq('swapped name', swapped.name, 'Incline Barbell Press');
+  eq('swapped unit becomes barbell', swapped.unit, 'barbell');
+  eq('swapped gets a real starting weight', swapped.startLoad, 35);
+  eq('swapped gets the barbell increment', swapped.increment, 2.5);
+  eq('id is preserved so history stays attached', swapped.id, dip.id);
+
+  // …and the progression engine now sees the substitute's equipment.
+  const t = computeNextTarget([], swapped);
+  eq('calibration uses the substitute start load', t.weight, 35);
+  eq('and is a normal calibration, not a bodyweight one', t.action, ACTION.CALIBRATE);
+  ok('hint no longer says "leave the weight blank"', !t.note.includes('blank'), t.note);
+  const bwT = computeNextTarget([], dip);
+  ok('un-swapped dip still says bodyweight', bwT.note.includes('Bodyweight'), bwT.note);
+
+  // Bodyweight in the other direction.
+  const pullup = getExercise('pull-up');
+  const pulldown = resolveExercise(pullup, 'Lat Pulldown');
+  eq('pull-up → pulldown becomes a machine', pulldown.unit, 'machine');
+  eq('…with a usable starting load', pulldown.startLoad, 45);
+
+  const legcurl = getExercise('seated-leg-curl');
+  const nordic = resolveExercise(legcurl, 'Nordic Curl');
+  eq('machine → bodyweight swap', nordic.unit, 'bodyweight');
+  eq('…starts at 0 added', nordic.startLoad, 0);
+
+  // Like-for-like swaps inherit the parent's equipment.
+  const lying = resolveExercise(legcurl, 'Lying Leg Curl');
+  eq('like-for-like keeps the unit', lying.unit, legcurl.unit);
+  eq('like-for-like keeps the start load', lying.startLoad, legcurl.startLoad);
+
+  // No substitution is a no-op.
+  eq('null substitution returns the original', resolveExercise(dip, null), dip);
+  eq('same-name substitution returns the original', resolveExercise(dip, dip.name), dip);
+
+  // Every listed substitute across the whole program must resolve to valid equipment.
+  const VALID = ['barbell', 'dumbbell', 'machine', 'bodyweight', 'none'];
+  let checked = 0;
+  for (const ex of EXERCISES) {
+    for (const name of ex.substitutes || []) {
+      const r = resolveExercise(ex, name);
+      ok(`${name}: valid unit`, VALID.includes(r.unit), r.unit);
+      ok(`${name}: has an increment`, typeof r.increment === 'number');
+      // A loadable substitute must offer a starting weight, or the slot renders blank.
+      if (r.unit !== 'bodyweight' && r.unit !== 'none') {
+        ok(`${name}: has a start load`, r.startLoad === null || typeof r.startLoad === 'number');
+      }
+      checked += 1;
+    }
+  }
+  console.log(`  ${checked} substitutes across ${EXERCISES.length} exercises all resolve`);
+}
+
 // ============================================================ service worker precache
 section('Service worker — precache list matches the file tree');
 {

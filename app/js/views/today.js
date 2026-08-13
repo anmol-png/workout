@@ -7,7 +7,7 @@
  */
 
 import {
-  DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise,
+  DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise,
 } from '../program.js';
 import * as store from '../store.js';
 import { computeNextTarget, describePerformance, ACTION } from '../progression.js';
@@ -32,6 +32,11 @@ export function subtitle() {
   const d = getDay(selectedDay || defaultDay());
   const week = store.currentWeek();
   return d ? `${d.subtitle} · Week ${week}` : 'Rest day';
+}
+
+/** The exercise as it actually is today — substitution applied, so equipment is correct. */
+function resolved(ex) {
+  return resolveExercise(ex, store.getSubstitution(ex.id));
 }
 
 function defaultDay() {
@@ -131,27 +136,27 @@ function warmupCard(dayKey, exercises) {
 
   const ramps = exercises
     .filter((ex, i) => needsRamp(ex, i, exercises))
-    .map((ex) => {
+    .map((baseEx) => {
+      const ex = resolved(baseEx);
       const history = store.historyFor(ex.id);
-      const t = computeNextTarget(history, ex.id);
+      const t = computeNextTarget(history, ex);
       const sets = rampSets(ex, t.weight, bar);
       if (!sets.length) return '';
       const line = sets.map((s) => (s.weight == null
         ? `<b>${s.reps} ${escapeHtml(s.note)}</b>`
         : `<b>${U.snapNum(s.weight, ex)}</b>×${s.reps}`)).join(' &nbsp;→&nbsp; ');
       return `<div style="padding:7px 0;border-top:1px solid var(--line)">
-        <div class="xs muted">${escapeHtml(store.getSubstitution(ex.id) || ex.name)}</div>
+        <div class="xs muted">${escapeHtml(ex.name)}</div>
         <div class="small" style="font-variant-numeric:tabular-nums;margin-top:2px">${line}
           &nbsp;→&nbsp; <span class="muted">work at ${t.weight ? U.snapW(t.weight, ex) : 'your load'}</span></div>
       </div>`;
     }).filter(Boolean).join('');
 
   return `<div class="card" data-warmup>
-    <button class="row between" data-act="warmup" style="width:100%;text-align:left"
-      aria-expanded="${warmupOpen}">
-      <span>
-        <b class="small">Warm-up</b>
-        <div class="xs muted">~6 min · do this before set 1</div>
+    <button class="row between wu-toggle" data-act="warmup" aria-expanded="${warmupOpen}">
+      <span class="grow">
+        <span class="small" style="display:block;font-weight:650">Warm-up</span>
+        <span class="xs muted" style="display:block">~6 min · do this before set 1</span>
       </span>
       <span class="pill">${warmupOpen ? 'Hide' : 'Show'}</span>
     </button>
@@ -173,11 +178,12 @@ function warmupCard(dayKey, exercises) {
   </div>`;
 }
 
-function exerciseCard(ex, session) {
-  const sub = store.getSubstitution(ex.id);
+function exerciseCard(baseEx, session) {
+  const sub = store.getSubstitution(baseEx.id);
+  const ex = resolved(baseEx);
   const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
   const last = history.length ? history[history.length - 1] : null;
-  const target = computeNextTarget(history, ex.id);
+  const target = computeNextTarget(history, ex);
   const entry = session.entries.find((e) => e.exerciseId === ex.id);
   const allDone = entry && entry.sets.length >= ex.sets && entry.sets.slice(0, ex.sets).every((s) => s.done);
 
@@ -258,7 +264,8 @@ function wire(root, session, exercises) {
     if (!btn) return;
     const act = btn.dataset.act;
     const card = btn.closest('[data-card]');
-    const ex = card ? getExercise(card.dataset.card) : null;
+    const base = card ? getExercise(card.dataset.card) : null;
+    const ex = base ? resolved(base) : null;
     const setRow = btn.closest('.set');
 
     if (act === 'toggle' && setRow) return toggleSet(setRow, session);
@@ -329,7 +336,7 @@ function updateSetField(input, session) {
 function toggleSet(row, session) {
   const exId = row.dataset.ex;
   const i = Number(row.dataset.i);
-  const ex = getExercise(exId);
+  const ex = resolved(getExercise(exId));
   const entry = entryFor(session, exId);
   const set = setAt(entry, i);
 
@@ -351,7 +358,7 @@ function toggleSet(row, session) {
 
   if (set.reps == null) {
     const history = store.historyFor(exId).filter((h) => h.sessionId !== session.id);
-    const t = computeNextTarget(history, exId);
+    const t = computeNextTarget(history, ex);
     set.reps = t.reps || ex.repRange[0];
     // Snap the suggestion, then convert back — so what gets stored is exactly what the
     // placeholder told you to load, not a number the equipment can't make.
@@ -388,7 +395,7 @@ function toggleSet(row, session) {
 
 function prefill(ex, session) {
   const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
-  const t = computeNextTarget(history, ex.id);
+  const t = computeNextTarget(history, ex);
   if (t.weight == null) return toast('No target yet — this one needs calibrating first.');
   const entry = entryFor(session, ex.id);
   for (let i = 0; i < ex.sets; i++) {
@@ -474,7 +481,7 @@ function showInfo(ex) {
 function showPlates(ex, session) {
   const p = store.getProfile();
   const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
-  const t = computeNextTarget(history, ex.id);
+  const t = computeNextTarget(history, ex);
   const initial = t.weight ?? p.barWeightKg;
 
   openSheet(`
@@ -506,7 +513,8 @@ function showPlates(ex, session) {
   });
 }
 
-function showSwap(ex) {
+function showSwap(baseEx) {
+  const ex = getExercise(baseEx.id) || baseEx;
   const current = store.getSubstitution(ex.id);
   const options = [ex.name, ...ex.substitutes];
   openSheet(`
