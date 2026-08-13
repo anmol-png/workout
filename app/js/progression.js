@@ -1,0 +1,202 @@
+/**
+ * progression.js — the double-progression engine.
+ *
+ * This is the module that makes the app more than a notebook. It reads your history for an
+ * exercise and answers one question: "what should I be lifting today?"
+ *
+ * The rule, from program/00-Program-Overview.md:
+ *
+ *   Hit the TOP of the rep range on all working sets at or below the target RPE
+ *   → add the smallest increment and restart at the bottom of the range.
+ *   Add reps first, load second, always.
+ *
+ * Everything else in here is bookkeeping around that one idea.
+ */
+
+import { getExercise } from './program.js';
+
+/** Result codes returned as `action`, so the UI can pick wording and colour. */
+export const ACTION = {
+  CALIBRATE: 'calibrate',   // no history — Week 1, find your load
+  ADD_LOAD: 'addLoad',      // earned an increment
+  ADD_REPS: 'addReps',      // stay at this load, add a rep
+  REPEAT: 'repeat',         // didn't clear the bottom of the range — repeat
+  STALL: 'stall',           // no progress in 3 sessions — back off or rotate
+};
+
+const STALL_SESSIONS = 3;
+const STALL_BACKOFF = 0.9; // 10% off when a lift stalls
+
+/**
+ * Did a single logged set clear the top of the rep range at or below the RPE ceiling?
+ *
+ * The RPE check matters as much as the rep count: 8 reps at RPE 10 is a set you barely survived,
+ * not a set you're ready to add weight to. Requiring rpe <= ceiling means the increment only
+ * fires when the reps came with something left in the tank.
+ * A missing RPE is treated as acceptable — plenty of sets get logged without one.
+ */
+function setClearsTop(set, exercise) {
+  const [, topReps] = exercise.repRange;
+  const rpeCeiling = exercise.rpe[1];
+  const repsOk = set.reps >= topReps;
+  const rpeOk = set.rpe == null || set.rpe <= rpeCeiling;
+  return repsOk && rpeOk;
+}
+
+function setClearsBottom(set, exercise) {
+  return set.reps >= exercise.repRange[0];
+}
+
+/** The load a session was performed at — the modal (most common) weight across its sets. */
+function sessionLoad(perf) {
+  const weights = perf.sets.map((s) => Number(s.weight) || 0);
+  if (!weights.length) return 0;
+  const counts = new Map();
+  for (const w of weights) counts.set(w, (counts.get(w) || 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
+}
+
+/** Total reps completed in a session — the tiebreaker for "did anything improve?". */
+function sessionReps(perf) {
+  return perf.sets.reduce((n, s) => n + (Number(s.reps) || 0), 0);
+}
+
+/**
+ * ── DECISION POINT ────────────────────────────────────────────────────────────
+ * How strict is "all sets hit the top of the range"?
+ *
+ * This single function decides how fast the entire program moves, so it belongs to the athlete,
+ * not to the app author.
+ *
+ *   STRICT   — every working set must clear the top of the range.
+ *              Slower, but every increment is genuinely earned and set 4 never collapses.
+ *   LENIENT  — the majority of sets clearing is enough.
+ *              Faster load progression, at the cost of some sloppy final sets.
+ *   FIRST_SET— only the first (freshest, heaviest-quality) set has to clear.
+ *              Fastest. Realistic for someone whose later sets always drop off from fatigue.
+ *
+ * @param {Array<{weight:number, reps:number, rpe:number|null}>} sets  completed sets, in order
+ * @param {object} exercise  the program.js exercise (repRange, rpe, sets)
+ * @returns {boolean} true → the athlete earned a load increase
+ */
+export function earnedIncrement(sets, exercise) {
+  const clearing = sets.filter((s) => setClearsTop(s, exercise));
+
+  // CHOSEN: STRICT. Every working set must clear the top of the range at or below the RPE
+  // ceiling. Slower than the alternatives, but no increment is ever taken on a set that was
+  // already grinding — which is the right call starting from estimated Week-1 loads.
+  //
+  // To change: LENIENT   → return clearing.length >= Math.ceil(sets.length / 2);
+  //            FIRST_SET → return sets.length > 0 && setClearsTop(sets[0], exercise);
+  return clearing.length === sets.length && sets.length >= exercise.sets;
+}
+
+/**
+ * What should today's target be for this exercise?
+ *
+ * @param {Array} history  from store.historyFor() — oldest first, each { date, sets }
+ * @param {string} exerciseId
+ * @returns {{action:string, weight:number|null, reps:number, note:string, lastWeight:number|null}}
+ */
+export function computeNextTarget(history, exerciseId) {
+  const ex = getExercise(exerciseId);
+  if (!ex) return { action: ACTION.CALIBRATE, weight: null, reps: 0, note: '', lastWeight: null };
+
+  const [lo, hi] = ex.repRange;
+
+  // ── No history: Week 1 calibration.
+  if (!history.length) {
+    return {
+      action: ACTION.CALIBRATE,
+      weight: ex.startLoad,
+      reps: lo,
+      lastWeight: null,
+      note: ex.startLoad == null
+        ? 'Calibration set — find a load that lands at the target RPE.'
+        : 'Starting estimate. Week 1 is calibration — chase the RPE, not the number.',
+    };
+  }
+
+  const last = history[history.length - 1];
+  const lastWeight = sessionLoad(last);
+  const lastTopReps = Math.max(...last.sets.map((s) => Number(s.reps) || 0));
+
+  // ── Earned the increment?
+  if (earnedIncrement(last.sets, ex)) {
+    const next = ex.increment ? round(lastWeight + ex.increment) : lastWeight;
+    return {
+      action: ACTION.ADD_LOAD,
+      weight: next,
+      reps: lo,
+      lastWeight,
+      note: ex.increment
+        ? `You hit ${hi}s last time — up ${fmt(ex.increment)} kg, back to ${lo} reps.`
+        : `You hit ${hi}s last time — add load or a notch.`,
+    };
+  }
+
+  // ── Stalled? Three sessions with no added reps and no added load.
+  if (isStalled(history)) {
+    return {
+      action: ACTION.STALL,
+      weight: round(lastWeight * STALL_BACKOFF),
+      reps: lo,
+      lastWeight,
+      note: `Stalled ${STALL_SESSIONS} sessions. Take ~10% off for one session, or rotate to a substitute.`,
+    };
+  }
+
+  // ── Cleared the bottom of the range: same load, one more rep.
+  const clearedBottom = last.sets.every((s) => setClearsBottom(s, ex));
+  if (clearedBottom) {
+    const target = Math.min(lastTopReps + 1, hi);
+    return {
+      action: ACTION.ADD_REPS,
+      weight: lastWeight,
+      reps: target,
+      lastWeight,
+      note: `Same weight — get ${target} on every set.`,
+    };
+  }
+
+  // ── Didn't clear the bottom: repeat it.
+  return {
+    action: ACTION.REPEAT,
+    weight: lastWeight,
+    reps: lo,
+    lastWeight,
+    note: `Repeat ${fmt(lastWeight)} kg until all sets reach ${lo}.`,
+  };
+}
+
+/** No improvement in weight or total reps across the last STALL_SESSIONS sessions. */
+export function isStalled(history) {
+  if (history.length < STALL_SESSIONS) return false;
+  const recent = history.slice(-STALL_SESSIONS);
+  const first = recent[0];
+  const firstW = sessionLoad(first);
+  const firstR = sessionReps(first);
+  return recent.slice(1).every((p) => sessionLoad(p) <= firstW && sessionReps(p) <= firstR);
+}
+
+/** Round to the nearest 0.5 kg — nothing finer exists in a real gym. */
+function round(w) {
+  return Math.round(w * 2) / 2;
+}
+
+function fmt(n) {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/**
+ * Human-readable summary of the last performance, e.g. "60 kg × 8, 8, 7".
+ * This is the "beat this" line shown above every exercise.
+ */
+export function describePerformance(perf) {
+  if (!perf || !perf.sets.length) return null;
+  const w = sessionLoad(perf);
+  const reps = perf.sets.map((s) => s.reps).join(', ');
+  const allSame = perf.sets.every((s) => Number(s.weight) === w);
+  if (allSame) return `${fmt(w)} kg × ${reps}`;
+  return perf.sets.map((s) => `${fmt(Number(s.weight) || 0)}×${s.reps}`).join(', ');
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Workout Tracker — 5-Day PPLUL",
+  "short_name": "Workout",
+  "description": "Offline training log for a 5-day Push/Pull/Legs/Upper/Lower program. Progressive overload, rest timer, volume analytics.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e1116",
+  "theme_color": "#0e1116",
+  "categories": ["health", "fitness", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Today's session", "url": "./#/today" },
+    { "name": "Stats", "url": "./#/stats" }
+  ]
+}

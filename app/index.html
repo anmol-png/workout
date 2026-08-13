@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover + the safe-area insets in CSS keep the tab bar clear of the iPhone home indicator -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Workout Tracker</title>
+<meta name="description" content="5-day PPLUL training tracker — offline, progressive overload, volume analytics.">
+<meta name="theme-color" content="#0e1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Workout">
+<!-- All paths relative: this is served from a GitHub Pages subpath, not the domain root. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  /* Critical inline styles so the shell paints before app.js parses. */
+  html { background: #0e1116; color-scheme: dark; }
+  body { margin: 0; background: #0e1116; color: #e7ecf3; font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #boot { display: grid; place-items: center; height: 100vh; color: #6b7684; }
+</style>
+</head>
+<body>
+
+<div id="app" hidden>
+  <header id="topbar">
+    <div id="topbar-title">
+      <h1 id="view-title">Today</h1>
+      <p id="view-sub"></p>
+    </div>
+    <div id="topbar-actions"></div>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <!-- Rest timer: fixed above the tab bar, hidden until a set is logged. -->
+  <div id="rest-bar" hidden>
+    <button id="rest-dismiss" aria-label="Dismiss rest timer">&times;</button>
+    <div id="rest-body">
+      <div id="rest-time">0:00</div>
+      <div id="rest-label">Rest</div>
+    </div>
+    <div id="rest-controls">
+      <button id="rest-minus" aria-label="Subtract 15 seconds">−15</button>
+      <button id="rest-plus" aria-label="Add 15 seconds">+15</button>
+    </div>
+    <div id="rest-progress"><span id="rest-progress-fill"></span></div>
+  </div>
+
+  <nav id="tabbar" role="tablist">
+    <a href="#/today" data-tab="today" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 8v8M17.5 8v8M4 10v4M20 10v4M8 12h8"/></svg>
+      <span>Today</span>
+    </a>
+    <a href="#/history" data-tab="history" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span>History</span>
+    </a>
+    <a href="#/stats" data-tab="stats" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      <span>Stats</span>
+    </a>
+    <a href="#/nutrition" data-tab="nutrition" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c4-3 6-6.5 6-10a6 6 0 0 0-12 0c0 3.5 2 7 6 10zM12 3v8"/></svg>
+      <span>Food</span>
+    </a>
+    <a href="#/settings" data-tab="settings" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+      <span>Me</span>
+    </a>
+  </nav>
+</div>
+
+<div id="boot">Loading…</div>
+
+<!-- Sheet host for the plate calculator, exercise detail, swap picker, etc. -->
+<div id="sheet-backdrop" hidden></div>
+<div id="sheet" hidden role="dialog" aria-modal="true"></div>
+<div id="toast" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
