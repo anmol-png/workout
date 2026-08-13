@@ -95,14 +95,22 @@ export function render(root) {
 
   html.push(warmupCard(dayKey, exercises));
 
-  // Exercises.
-  let lastGroup = null;
-  for (const ex of exercises) {
-    if (ex.supersetGroup && ex.supersetGroup !== lastGroup) {
-      html.push(`<div class="superset-tag">Superset ${ex.supersetGroup} — back to back</div>`);
+  // Exercises, with supersets rendered as one bracketed block. Previously the only cue was a
+  // small label above the cards, which is easy to scroll straight past — and did get missed.
+  let i = 0;
+  while (i < exercises.length) {
+    const ex = exercises[i];
+    if (!ex.supersetGroup) {
+      html.push(exerciseCard(ex, session));
+      i += 1;
+      continue;
     }
-    lastGroup = ex.supersetGroup || null;
-    html.push(exerciseCard(ex, session));
+    const group = [];
+    while (i < exercises.length && exercises[i].supersetGroup === ex.supersetGroup) {
+      group.push(exercises[i]);
+      i += 1;
+    }
+    html.push(supersetBlock(group, session));
   }
 
   // Session footer.
@@ -121,6 +129,34 @@ export function render(root) {
 
   root.innerHTML = html.join('');
   wire(root, session, exercises);
+}
+
+/**
+ * A superset: exercises performed back to back, with the real rest only after the last one.
+ *
+ * Rendered as a single bracketed block with the round spelled out, because a label above three
+ * separate cards reads as decoration and gets skipped.
+ */
+function supersetBlock(group, session) {
+  const letter = group[0].supersetGroup;
+  const rounds = Math.max(...group.map((e) => e.sets));
+  const restAfter = group[group.length - 1].restSec;
+
+  const steps = group
+    .map((e, i) => `<b>${e.order}</b>${i < group.length - 1 ? ` <span class="dim">→ ${e.restSec}s →</span> ` : ''}`)
+    .join('');
+
+  return `<div class="superset">
+    <div class="superset-head">
+      <span class="superset-badge">SUPERSET ${letter}</span>
+      <span class="xs">${group.length} exercises, back to back</span>
+    </div>
+    <div class="superset-how">
+      ${steps} <span class="dim">→ rest ${formatRest(restAfter)} →</span> <b>repeat</b>
+      · <b>${rounds} rounds</b> total
+    </div>
+    ${group.map((e) => exerciseCard(e, session)).join('')}
+  </div>`;
 }
 
 /**
@@ -228,6 +264,10 @@ function exerciseCard(baseEx, session) {
     </div>
 
     ${ex.isFinisher ? '' : `
+      ${ex.unit === 'dumbbell' || ex.perSide ? `<div class="ex-note">
+        ${ex.unit === 'dumbbell' ? 'Log the weight of <b>one</b> dumbbell.' : ''}
+        ${ex.perSide ? 'Reps are <b>per side</b> — do the same both sides.' : ''}
+      </div>` : ''}
       <div class="ex-hint ${hintClass}">
         <span>${hintIcon}</span>
         <span class="grow">${last
@@ -235,7 +275,8 @@ function exerciseCard(baseEx, session) {
           : escapeHtml(target.note)}</span>
       </div>
       <div class="sets">
-        <div class="sets-head"><span></span><span>${isBW ? `+${U.unitFor(ex.id)}` : U.unitFor(ex.id)}</span><span>reps</span><span>rpe</span><span></span></div>
+        <div class="sets-head"><span></span><span>${isBW ? `+${U.unitFor(ex.id)}`
+          : ex.unit === 'dumbbell' ? `${U.unitFor(ex.id)} ea` : U.unitFor(ex.id)}</span><span>reps</span><span>rpe</span><span></span></div>
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}
