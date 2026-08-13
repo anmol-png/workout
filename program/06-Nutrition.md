@@ -96,14 +96,19 @@ it needs more deliberate planning but it's entirely doable.
 
 ## 3. Around training
 
-- **1–2 h before:** carbs + some protein. A meal with rice/roti and dal/chicken is perfect. Training
-  fasted is not a crime, but you will produce less force and therefore less stimulus.
+> **See [07-Pre-Workout.md](07-Pre-Workout.md) for the full protocol** — the 4pm fuelling meal,
+> caffeine timing maths, and the supplements worth taking. Summary below.
+
+- **~90 min before:** 40–60 g carbs + 20–25 g protein, **low fat and low fibre** (both slow gastric
+  emptying and leave the meal sitting in your stomach while you squat). For a 5:30pm session that
+  means a **4pm meal** — without it you're training on a five-hour fast.
 - **After:** protein + carbs within a couple of hours. The "30-minute anabolic window" is a myth —
   what matters is total daily protein and not going many hours without any. Convenience is the real
   argument for a post-workout shake.
-- **Caffeine 30–45 min before**, if you use it. 3–6 mg/kg (≈ 250–450 mg for you) reliably improves
-  training performance. **Not after ~2 pm** — its half-life is ~5–6 h, and on a 6–7 h sleep budget
-  you cannot afford to blunt sleep quality for a slightly better session.
+- **Caffeine: with brunch, ≤200 mg, hard cutoff 1pm.** Its half-life is ~5–6 h (8+ h if you're a slow
+  metaboliser), so a 1pm coffee is *still* delivering ~113 mg at a 5:30pm session while leaving only
+  ~47 mg at bedtime — versus ~78–104 mg from a 5pm dose. On a 6–7 h sleep budget that difference is
+  the whole ballgame.
 
 ---
 

@@ -28,8 +28,28 @@ const FOODS = [
   ['Rice', '1 katori', '~3 g'],
 ];
 
+/**
+ * Pre-workout timeline for a 5:30pm session. The 4pm meal is the whole point: brunch → training
+ * is a ~5 h fasting gap, and that hole is what a stimulant was being used to paper over.
+ */
+const PRE_TIMELINE = [
+  ['12–1pm', 'Brunch + coffee', 'Caffeine goes HERE. ≤200 mg, never after 1pm.'],
+  ['4:00pm', '<b>Pre-workout meal</b> + 8 g citrulline', '40–60 g carbs, 20–25 g protein. Low fat, low fibre.'],
+  ['5:15pm', 'Optional: banana or 4 dates', 'Only if you feel flat. ~25 g fast carbs.'],
+  ['5:30pm', 'Train', 'Water throughout. Sip carbs on Legs + Lower days.'],
+  ['7:15pm', 'Dinner', 'Protein + carbs.'],
+];
+
+const PRE_MEALS = [
+  ['Banana + 4–5 dates + 1 scoop whey', '~55 g C · 25 g P'],
+  ['Poha + 150 g curd', '~50 g C · 20 g P'],
+  ['White toast + honey + 1 scoop whey', '~45 g C · 26 g P'],
+  ['White rice + dal (small katori) + curd', '~50 g C · 16 g P'],
+  ['Sweet potato 200 g + whey', '~45 g C · 25 g P'],
+];
+
 export function title() { return 'Nutrition'; }
-export function subtitle() { return 'Targets and the feedback loop'; }
+export function subtitle() { return 'Targets, fuelling and the feedback loop'; }
 
 export function render(root) {
   const trend = bodyweightTrend();
@@ -64,6 +84,34 @@ export function render(root) {
     </div>
 
     <div class="card">
+      <div class="chart-title">Training day timeline</div>
+      <div class="chart-sub">You train at 5:30pm. Brunch is ~5 h earlier — that gap is why sessions
+        feel flat, and it's what a pre-workout was covering up.</div>
+      <table class="food-tbl mt">
+        ${PRE_TIMELINE.map(([t, what, why]) => `<tr>
+          <td style="white-space:nowrap;vertical-align:top;color:var(--muted)">${t}</td>
+          <td>${what}<div class="xs muted">${why}</div></td></tr>`).join('')}
+      </table>
+      <div class="divider"></div>
+      <div class="chart-title">Pick one for the 4pm meal</div>
+      <table class="food-tbl mt">
+        ${PRE_MEALS.map(([f, m]) => `<tr><td>${f}</td><td>${m}</td></tr>`).join('')}
+      </table>
+      <p class="xs muted mt">White rice and white bread are <b>correct</b> here — this is the one
+        meal where fast digestion beats slow. Fat and fibre slow gastric emptying and leave the
+        meal sitting in your stomach during squats.</p>
+    </div>
+
+    <div class="banner warn">
+      <b>Caffeine: 1pm cutoff, ≤200 mg.</b> A 1pm coffee still puts ~113 mg in your blood at 5:30pm
+      — a real ergogenic dose — but leaves only ~47 mg at bedtime. The same dose at 5pm leaves
+      ~78–104 mg, which is a full coffee's worth as you get into bed. That's what was wrecking
+      your sleep, not the training.
+      <div class="xs mt" style="opacity:.85">Caffeine doesn't create energy — it blocks the
+        receptor telling you you're tired. The fatigue accrues anyway.</div>
+    </div>
+
+    <div class="card">
       <div class="chart-title">Hitting ${NUTRITION.protein} g of protein</div>
       <div class="chart-sub">The part that actually fails. A normal Indian diet is carb-dense and
         protein-light by default — this needs planning, not willpower.</div>
@@ -81,12 +129,19 @@ export function render(root) {
       <table class="food-tbl mt">
         <tr><td><b>Creatine monohydrate</b><div class="xs muted">Any time, every day including rest days.
           Most evidenced legal supplement there is. No loading phase. Monohydrate only.</div></td><td>${NUTRITION.creatineG} g</td></tr>
+        <tr><td><b>Citrulline malate</b><div class="xs muted">60 min pre — with the 4pm meal. This is
+          your pre-workout replacement: the pump and a rep or two late in a set, no stimulation.
+          Effect is real but modest.</div></td><td>8 g</td></tr>
         <tr><td><b>Whey protein</b><div class="xs muted">A convenience food, not a magic one.</div></td><td>as needed</td></tr>
+        <tr><td><b>Beta-alanine</b><div class="xs muted">Daily, NOT pre-workout — it loads over weeks.
+          Helps 12–20 rep sets, does nothing for a 5-rep squat. Tingling is harmless.</div></td><td>3.2 g</td></tr>
         <tr><td><b>Vitamin D3</b><div class="xs muted">Deficiency is common in India despite the sunshine.</div></td><td>1–2k IU</td></tr>
-        <tr><td><b>Caffeine</b><div class="xs muted">3–6 mg/kg pre-workout. Nothing after 2pm — you can't
-          afford worse sleep.</div></td><td>250–450 mg</td></tr>
+        <tr><td><b>Caffeine</b><div class="xs muted">With brunch, <b>never after 1pm</b>. Consider using it
+          only on Legs and Lower days — daily use builds tolerance in 1–2 weeks.</div></td><td>≤200 mg</td></tr>
       </table>
-      <p class="xs muted mt">BCAAs, glutamine, test boosters, mass gainers: skip them. Money better spent on food.</p>
+      <p class="xs muted mt">BCAAs (redundant at 165 g protein), arginine (poorly absorbed — citrulline
+        is strictly better), glutamine, test boosters, mass gainers, proprietary blends: skip them.
+        Buy single-ingredient powders and control the dose yourself.</p>
     </div>
 
     <div class="banner accent">

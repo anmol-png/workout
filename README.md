@@ -31,6 +31,7 @@ fatigue.
 | **[00-Program-Overview.md](program/00-Program-Overview.md)** | Split rationale, weekly volume table, double progression, RPE, the 6-week mesocycle, autoregulation. **Read this first.** |
 | [01-Push.md](program/01-Push.md) · [02-Pull.md](program/02-Pull.md) · [03-Legs.md](program/03-Legs.md) · [04-Upper.md](program/04-Upper.md) · [05-Lower.md](program/05-Lower.md) | The five sessions, with the reasoning behind every set, rep, RPE and load, plus cues and substitutes. |
 | **[06-Nutrition.md](program/06-Nutrition.md)** | Calorie and protein targets, the self-correcting bodyweight feedback loop, an India-friendly protein guide, supplements, sleep. |
+| **[07-Pre-Workout.md](program/07-Pre-Workout.md)** | Energy for a 5:30pm session without wrecking sleep — the 4pm fuelling meal, caffeine timing maths, creatine and citrulline, and what to skip. |
 | [`app/`](app/) | The progress tracker. |
 
 ---
