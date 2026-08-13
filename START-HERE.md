@@ -144,6 +144,23 @@ Add weight from week 2. Don't blow yourself up in the first session.
 **What if a machine at my gym is busy or missing?**
 Tap the exercise → **Swap**. Pick a substitute. Your history stays attached.
 
+**I usually take my whey AFTER the workout, not before. Is 4pm wrong?**
+No — your instinct is fine. The "post-workout window" is mostly a myth; total daily protein matters
+far more than timing. And whey at 4pm is *still* in your bloodstream at 6:30pm anyway (it stays
+elevated ~3 hours), so you're not missing the post-workout coverage.
+
+The real reason for 4pm is spacing: a shake at 7pm and dinner at 7:15pm are **one meal, not two** —
+so you'd lose a protein feeding, and on 2–3 meals a day you can't spare one. Pick any of these:
+
+| | 4pm | After gym | Dinner |
+|---|---|---|---|
+| **A — simplest** | carbs + 1 scoop whey | — | 7:15pm |
+| **B — split it** | carbs + ½ scoop | ½ scoop | 7:15pm |
+| **C — keep your habit** | carbs + curd or milk | 1 scoop | **8:15pm** |
+
+**But don't move the carbs.** The banana + dates at 4pm is the actual fix for feeling flat. The
+protein there is a bonus; the carbs are the point.
+
 **Do I need the citrulline?**
 No. Creatine and the 4pm meal do 90% of the work. Citrulline adds a bit of pump and maybe one
 extra rep. Skip it if you want to keep things simple.

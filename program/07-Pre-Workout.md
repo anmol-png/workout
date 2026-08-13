@@ -71,6 +71,26 @@ that's the sluggish, heavy feeling people misdiagnose as "needing a stronger pre
 > 165 g of protein very hard to reach. A 4pm feed with 25 g of protein in it is both your
 > pre-workout fuel *and* the fourth protein feeding you were missing.
 
+### "But I take my whey *after* the workout"
+
+Correct instinct, and it doesn't conflict with this. The **post-workout anabolic window is largely
+a myth** — when total daily protein is equated, the timing effect mostly disappears. Whey also
+raises blood amino acids for ~3 hours, so a 4pm scoop is **still circulating at 6:30pm** when you
+finish. You lose nothing by taking it early.
+
+The reason protein sits at 4pm is **spacing, not the window**: a shake at 7pm followed by dinner
+at 7:15pm is *one* feeding, not two. On 2–3 meals a day you cannot afford to lose one when the
+target is 165 g. Any of these work:
+
+| | 4pm | After the gym | Dinner |
+|---|---|---|---|
+| **A — simplest** | carbs + 1 scoop whey | — | 7:15pm |
+| **B — split** | carbs + ½ scoop | ½ scoop | 7:15pm |
+| **C — keeps your habit** | carbs + curd or milk | 1 scoop | **8:15pm** |
+
+> **The carbohydrate at 4pm is not optional.** That's the piece fixing the five-hour fasting gap —
+> the protein there is opportunistic. Move the whey if you like; don't move the banana and dates.
+
 ### Intra-workout — only on Legs and Lower days
 
 For a 60-minute session you don't need carbs mid-workout. The two exceptions are your **hardest**
