@@ -37,7 +37,11 @@ fatigue.
 
 ## The tracker
 
-An **offline-first PWA** — install it to your phone's home screen and it works with no signal.
+### → **[anmol-png.github.io/workout/app](https://anmol-png.github.io/workout/app/)**
+
+An **offline-first PWA**. Open that link on your phone, then **Share → Add to Home Screen**.
+After that it launches like a native app and works with no signal at all — the whole app shell is
+cached on-device by a service worker, and your training data never leaves your phone.
 
 **What it does:** drives today's session · shows last week's numbers inline as the target to beat ·
 logs weight/reps/RPE per set · computes double progression and tells you when to add weight ·
