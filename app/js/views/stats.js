@@ -97,13 +97,13 @@ export function render(root) {
 
     html.push(`<div class="card">
       <div class="chart-title">Estimated 1RM</div>
-      <div class="chart-sub">${escapeHtml(active.ex.name)}${gain > 0 ? ` · +${U.w(gain)} since you started` : ''}</div>
+      <div class="chart-sub">${escapeHtml(active.ex.name)}${gain > 0 ? ` · +${U.w(gain, active.ex.id)} since you started` : ''}</div>
       <div class="row wrap mb" style="gap:6px">
         ${lifts.map((l) => `<button class="btn sm ${l.ex.id === selectedLift ? 'primary' : 'ghost'}"
           data-lift="${l.ex.id}">${escapeHtml(shortName(l.ex.name))}</button>`).join('')}
       </div>
-      ${lineChart(series.map((p) => ({ ...p, value: Number(U.num(p.value)) })),
-        { label: 'Estimated 1RM', unit: ` ${U.unit()}` })}
+      ${lineChart(series.map((q) => ({ ...q, value: Number(U.num(q.value, active.ex.id)) })),
+        { label: 'Estimated 1RM', unit: ` ${U.unitFor(active.ex.id)}` })}
       <p class="xs muted mt">Epley, adjusted for reps-in-reserve from your logged RPE.</p>
     </div>`);
   }
@@ -148,7 +148,7 @@ export function render(root) {
         <span class="small">${escapeHtml(p.name)}</span>
         <span class="row" style="gap:8px">
           <span class="xs dim">${formatDate(p.date)}</span>
-          <span class="pill pr">${U.w(p.value)}</span>
+          <span class="pill pr">${U.w(p.value, p.id)}</span>
         </span>
       </div>`).join('')}
     </div>`);
@@ -179,7 +179,7 @@ function recentPRs() {
       const v = bestE1RM(h.sets);
       if (v > best) { best = v; bestDate = h.date; }
     }
-    if (best > 0) out.push({ name: ex.name, value: best, date: bestDate });
+    if (best > 0) out.push({ id: ex.id, name: ex.name, value: best, date: bestDate });
   }
   return out.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 }

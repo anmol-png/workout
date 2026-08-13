@@ -138,11 +138,11 @@ function warmupCard(dayKey, exercises) {
       if (!sets.length) return '';
       const line = sets.map((s) => (s.weight == null
         ? `<b>${s.reps} ${escapeHtml(s.note)}</b>`
-        : `<b>${U.num(s.weight)}</b>×${s.reps}`)).join(' &nbsp;→&nbsp; ');
+        : `<b>${U.snapNum(s.weight, ex)}</b>×${s.reps}`)).join(' &nbsp;→&nbsp; ');
       return `<div style="padding:7px 0;border-top:1px solid var(--line)">
         <div class="xs muted">${escapeHtml(store.getSubstitution(ex.id) || ex.name)}</div>
         <div class="small" style="font-variant-numeric:tabular-nums;margin-top:2px">${line}
-          &nbsp;→&nbsp; <span class="muted">work at ${t.weight ? U.w(t.weight) : 'your load'}</span></div>
+          &nbsp;→&nbsp; <span class="muted">work at ${t.weight ? U.snapW(t.weight, ex) : 'your load'}</span></div>
       </div>`;
     }).filter(Boolean).join('');
 
@@ -195,9 +195,9 @@ function exerciseCard(ex, session) {
     rows.push(`
       <div class="set ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
         <span class="set-n">${s.isPR ? '★' : i + 1}</span>
-        <input type="number" inputmode="decimal" step="${U.step()}" data-f="weight"
-          placeholder="${isBW ? 'BW' : (target.weight != null ? U.num(target.weight) : U.unit())}"
-          value="${s.weight == null ? '' : U.num(s.weight)}" aria-label="Set ${i + 1} weight">
+        <input type="number" inputmode="decimal" step="${U.step(ex.id)}" data-f="weight"
+          placeholder="${isBW ? 'BW' : (target.weight != null ? U.snapNum(target.weight, ex) : U.unitFor(ex.id))}"
+          value="${s.weight == null ? '' : U.num(s.weight, ex.id)}" aria-label="Set ${i + 1} weight">
         <input type="number" inputmode="numeric" step="1" data-f="reps"
           placeholder="${target.reps || ex.repRange[0]}"
           value="${s.reps ?? ''}" aria-label="Set ${i + 1} reps">
@@ -229,7 +229,7 @@ function exerciseCard(ex, session) {
           : escapeHtml(target.note)}</span>
       </div>
       <div class="sets">
-        <div class="sets-head"><span></span><span>${isBW ? `+${U.unit()}` : U.unit()}</span><span>reps</span><span>rpe</span><span></span></div>
+        <div class="sets-head"><span></span><span>${isBW ? `+${U.unitFor(ex.id)}` : U.unitFor(ex.id)}</span><span>reps</span><span>rpe</span><span></span></div>
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}
@@ -321,7 +321,8 @@ function updateSetField(input, session) {
   const set = setAt(entry, Number(row.dataset.i));
   // Weight arrives in the display unit; everything is stored in kg.
   const raw = input.value === '' ? null : Number(input.value);
-  set[input.dataset.f] = (raw != null && input.dataset.f === 'weight') ? U.toKg(raw) : raw;
+  set[input.dataset.f] = (raw != null && input.dataset.f === 'weight')
+    ? U.toKg(raw, row.dataset.ex) : raw;
   store.upsertSession(session);
 }
 
@@ -345,16 +346,18 @@ function toggleSet(row, session) {
   const inputs = row.querySelectorAll('input');
   inputs.forEach((inp) => {
     const v = inp.value === '' ? null : Number(inp.value);
-    if (v != null) set[inp.dataset.f] = inp.dataset.f === 'weight' ? U.toKg(v) : v;
+    if (v != null) set[inp.dataset.f] = inp.dataset.f === 'weight' ? U.toKg(v, exId) : v;
   });
 
   if (set.reps == null) {
     const history = store.historyFor(exId).filter((h) => h.sessionId !== session.id);
     const t = computeNextTarget(history, exId);
     set.reps = t.reps || ex.repRange[0];
-    if (set.weight == null && t.weight != null) set.weight = t.weight;
+    // Snap the suggestion, then convert back — so what gets stored is exactly what the
+    // placeholder told you to load, not a number the equipment can't make.
+    if (set.weight == null && t.weight != null) set.weight = U.toKg(U.snap(t.weight, ex), ex.id);
     row.querySelector('[data-f="reps"]').value = set.reps;
-    if (set.weight != null) row.querySelector('[data-f="weight"]').value = U.num(set.weight);
+    if (set.weight != null) row.querySelector('[data-f="weight"]').value = U.num(set.weight, exId);
   }
 
   set.done = true;
@@ -373,7 +376,7 @@ function toggleSet(row, session) {
   store.upsertSession(session);
 
   if (pr.isPR) {
-    toast(`PR — ${escapeHtml(ex.name)}, e1RM ${U.w(pr.value)}`, 'pr');
+    toast(`PR — ${escapeHtml(ex.name)}, e1RM ${U.w(pr.value, ex.id)}`, 'pr');
     if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 120]);
   }
 
@@ -390,12 +393,12 @@ function prefill(ex, session) {
   const entry = entryFor(session, ex.id);
   for (let i = 0; i < ex.sets; i++) {
     const s = setAt(entry, i);
-    if (!s.done) { s.weight = t.weight; s.reps = t.reps; }
+    if (!s.done) { s.weight = U.toKg(U.snap(t.weight, ex), ex.id); s.reps = t.reps; }
   }
   store.upsertSession(session);
   rerender();
   const isBW = ex.unit === 'bodyweight';
-  toast(isBW && !t.weight ? `Filled bodyweight × ${t.reps}` : `Filled ${U.w(t.weight)} × ${t.reps}`);
+  toast(isBW && !t.weight ? `Filled bodyweight × ${t.reps}` : `Filled ${U.snapW(t.weight, ex)} × ${t.reps}`);
 }
 
 function markFinisher(ex, session) {
@@ -434,14 +437,38 @@ function finish(session, exercises) {
 
 function showInfo(ex) {
   const sub = store.getSubstitution(ex.id);
+  const override = store.getExerciseUnit(ex.id);
   openSheet(`
     <h2>${escapeHtml(sub || ex.name)}</h2>
     <p class="sheet-sub">${prescription(ex)} · rest ${formatRest(ex.restSec)}</p>
     <ul class="cue-list">${ex.cues.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
     <div class="divider"></div>
+    <div class="row between">
+      <div class="grow">
+        <b class="small">Units for this exercise</b>
+        <div class="xs muted">Set this to match the actual plates or stack on this machine.</div>
+      </div>
+      <div class="unit-toggle" id="ex-unit">
+        <button data-eu="" aria-pressed="${!override}">Auto</button>
+        <button data-eu="kg" aria-pressed="${override === 'kg'}">kg</button>
+        <button data-eu="lb" aria-pressed="${override === 'lb'}">lb</button>
+      </div>
+    </div>
+    <div class="divider"></div>
     <p class="xs muted">Substitutes: ${ex.substitutes.map(escapeHtml).join(' · ') || '—'}</p>
     <p class="xs muted mt">Trains: ${[...ex.muscles.primary, ...ex.muscles.secondary].join(', ') || '—'}</p>
-  `);
+  `, (sheet) => {
+    sheet.querySelectorAll('#ex-unit button').forEach((b) => {
+      b.addEventListener('click', () => {
+        store.setExerciseUnit(ex.id, b.dataset.eu || null);
+        window.__closeSheet();
+        rerender();
+        toast(b.dataset.eu
+          ? `${escapeHtml(ex.name)} now in ${b.dataset.eu}`
+          : 'Following the default unit');
+      });
+    });
+  });
 }
 
 function showPlates(ex, session) {
@@ -452,27 +479,27 @@ function showPlates(ex, session) {
 
   openSheet(`
     <h2>Plate calculator</h2>
-    <p class="sheet-sub">${escapeHtml(ex.name)} · ${U.w(p.barWeightKg)} bar</p>
-    <label class="field"><span>Total weight (${U.unit()})</span>
-      <input class="input" type="number" inputmode="decimal" step="${U.step()}" id="plate-target" value="${U.num(initial)}">
+    <p class="sheet-sub">${escapeHtml(ex.name)} · ${U.w(p.barWeightKg, ex.id)} bar</p>
+    <label class="field"><span>Total weight (${U.unitFor(ex.id)})</span>
+      <input class="input" type="number" inputmode="decimal" step="${U.step(ex.id)}" id="plate-target" value="${U.snapNum(initial, ex)}">
     </label>
     <div id="plate-out"></div>
   `, (sheet) => {
     const input = sheet.querySelector('#plate-target');
     const out = sheet.querySelector('#plate-out');
     const draw = () => {
-      const r = computePlates(U.toKg(input.value), p.barWeightKg, p.platesKg);
+      const r = computePlates(U.toKg(input.value, ex.id), p.barWeightKg, p.platesKg);
       if (r.barOnly) {
-        out.innerHTML = `<p class="center muted small">Empty ${U.w(p.barWeightKg)} bar.</p>`;
+        out.innerHTML = `<p class="center muted small">Empty ${U.w(p.barWeightKg, ex.id)} bar.</p>`;
         return;
       }
       out.innerHTML = `
         <p class="center small muted mb">Per side, heaviest first</p>
-        <div class="plate-stack">${r.perSide.map((kg) => `<span class="plate ${plateClass(kg)}">${U.plateLabel(kg)}</span>`).join('') || '<span class="muted small">nothing</span>'}</div>
+        <div class="plate-stack">${r.perSide.map((kg) => `<span class="plate ${plateClass(kg)}">${U.plateLabel(kg, ex.id)}</span>`).join('') || '<span class="muted small">nothing</span>'}</div>
         <div class="bar-line"></div>
         <p class="center small">${r.ok
-          ? `<b>${U.w(r.achieved)}</b> total`
-          : `Closest loadable: <b>${U.w(r.achieved)}</b> <span class="muted">(${r.remainder > 0 ? `${U.w(r.remainder)} short` : 'over'})</span>`}</p>`;
+          ? `<b>${U.w(r.achieved, ex.id)}</b> total`
+          : `Closest loadable: <b>${U.w(r.achieved, ex.id)}</b> <span class="muted">(${r.remainder > 0 ? `${U.w(r.remainder, ex.id)} short` : 'over'})</span>`}</p>`;
     };
     input.addEventListener('input', draw);
     draw();

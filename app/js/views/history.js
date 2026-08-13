@@ -78,7 +78,7 @@ function showSession(id) {
     const bw = ex.unit === 'bodyweight';
     const sets = done.map((x) => {
       const kg = Number(x.weight) || 0;
-      const wLabel = bw ? (kg > 0 ? `BW+${U.num(kg)}` : 'BW') : U.num(kg);
+      const wLabel = bw ? (kg > 0 ? `BW+${U.num(kg, ex.id)}` : 'BW') : U.num(kg, ex.id);
       return `${wLabel}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}${x.isPR ? ' ★' : ''}`;
     }).join('  ·  ');
     return `<div style="padding:9px 0;border-top:1px solid var(--line)">

@@ -44,6 +44,11 @@ function emptyState() {
     dailyLogs: {},
     /** exerciseId -> substitute name, when the user swaps an exercise. */
     substitutions: {},
+    /**
+     * exerciseId -> 'kg' | 'lb'. Real gyms mix equipment: a kg barbell next to a lb-stack
+     * pulldown. A single global unit can't describe that, so each exercise may override it.
+     */
+    exerciseUnits: {},
     meta: {
       lastBackupAt: null,
       createdAt: new Date().toISOString(),
@@ -78,6 +83,7 @@ function migrate(data) {
     meta: { ...base.meta, ...(data.meta || {}) },
     dailyLogs: data.dailyLogs || {},
     substitutions: data.substitutions || {},
+    exerciseUnits: data.exerciseUnits || {},
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
   };
   merged.schemaVersion = SCHEMA_VERSION;
@@ -164,6 +170,17 @@ export function getDailyLogs() {
 
 export function getSubstitution(exerciseId) {
   return state.substitutions[exerciseId] || null;
+}
+
+/** null = follow the global default. */
+export function getExerciseUnit(exerciseId) {
+  return state.exerciseUnits[exerciseId] || null;
+}
+
+export function setExerciseUnit(exerciseId, u) {
+  if (u === 'kg' || u === 'lb') state.exerciseUnits[exerciseId] = u;
+  else delete state.exerciseUnits[exerciseId];
+  commit();
 }
 
 /** 1-based program week, derived from profile.programStart. */

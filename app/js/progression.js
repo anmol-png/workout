@@ -28,6 +28,19 @@ export function setWeightFormatter(fn) {
   fmtW = fn;
 }
 
+/**
+ * How big a load jump is, in kg, for a given exercise.
+ *
+ * Injected for the same reason as the formatter: on a lb-denominated machine the real jump is
+ * 5 lb (~2.27 kg), not the 2.5 kg the program specifies — and suggesting 2.5 kg would produce a
+ * target you physically cannot select on the stack. The default uses the program's own figure.
+ */
+let incrementFor = (ex) => ex.increment;
+
+export function setIncrementResolver(fn) {
+  incrementFor = fn;
+}
+
 /** Result codes returned as `action`, so the UI can pick wording and colour. */
 export const ACTION = {
   CALIBRATE: 'calibrate',   // no history — Week 1, find your load
@@ -138,16 +151,17 @@ export function computeNextTarget(history, exerciseId) {
 
   // ── Earned the increment?
   if (earnedIncrement(last.sets, ex)) {
-    const next = ex.increment ? round(lastWeight + ex.increment) : lastWeight;
+    const inc = incrementFor(ex);
+    const next = inc ? round(lastWeight + inc) : lastWeight;
     return {
       action: ACTION.ADD_LOAD,
       weight: next,
       reps: lo,
       lastWeight,
-      note: ex.increment
+      note: inc
         ? (ex.unit === 'bodyweight'
-          ? `You hit ${hi}s last time — add ${fmtW(ex.increment)} on a belt, back to ${lo} reps.`
-          : `You hit ${hi}s last time — up ${fmtW(ex.increment)}, back to ${lo} reps.`)
+          ? `You hit ${hi}s last time — add ${fmtW(inc, ex)} on a belt, back to ${lo} reps.`
+          : `You hit ${hi}s last time — up ${fmtW(inc, ex)}, back to ${lo} reps.`)
         : `You hit ${hi}s last time — add load or a notch.`,
     };
   }
@@ -182,7 +196,7 @@ export function computeNextTarget(history, exerciseId) {
     weight: lastWeight,
     reps: lo,
     lastWeight,
-    note: `Repeat ${fmtW(lastWeight)} until all sets reach ${lo}.`,
+    note: `Repeat ${fmtW(lastWeight, ex)} until all sets reach ${lo}.`,
   };
 }
 
@@ -216,8 +230,8 @@ export function describePerformance(perf, exercise = null) {
   const allSame = perf.sets.every((s) => Number(s.weight) === w);
   // A bodyweight lift stores ADDED weight, so 0 means "just bodyweight" — never "0 kg".
   const label = exercise?.unit === 'bodyweight'
-    ? (kg) => (kg > 0 ? `BW+${fmtW(kg)}` : 'BW')
-    : fmtW;
+    ? (kg) => (kg > 0 ? `BW+${fmtW(kg, exercise)}` : 'BW')
+    : (kg) => fmtW(kg, exercise);
   if (allSame) return `${label(w)} × ${reps}`;
   return perf.sets.map((s) => `${label(Number(s.weight) || 0)}×${s.reps}`).join(', ');
 }

@@ -29,7 +29,15 @@ Also buy, from any grocery shop: **bananas** and **dates**. You'll use them ever
 3. Open it, go to the **Me** tab (bottom right), and fill in:
    - Your height
    - Program start date → set it to **Monday 17 August 2026**
+   - **Default units** — kg or lb
 4. Done. Nothing else to configure.
+
+### If your gym mixes kg and lb equipment
+Set the **default** to whatever you use most, then override any single machine:
+tap the **ⓘ** next to that exercise → **Units for this exercise** → kg / lb.
+
+Suggested weights always snap to numbers you can actually load — 5 lb steps on a lb stack,
+2.5 kg on a kg barbell. You'll never be told to load 77 lb.
 
 ---
 

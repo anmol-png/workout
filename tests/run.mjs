@@ -310,62 +310,145 @@ section('Autoregulation');
 }
 
 // ============================================================ units
-section('Units — kg ⇄ lb display conversion');
+section('Units — per-exercise kg/lb with realistic snapping');
 {
   const U = await import(`${APP}/units.js`);
+  const { getExercise } = await import(`${APP}/program.js`);
   store.resetAll();
 
-  // Default is kg and must be a pure pass-through.
+  const squat = getExercise('back-squat');        // barbell
+  const pulldown = getExercise('lat-pulldown');   // machine
+  const db = getExercise('db-lateral-raise');     // dumbbell
+
+  // Default: kg, pass-through.
   eq('default unit is kg', U.unit(), 'kg');
-  eq('kg → display is identity', U.toDisplay(50), 50);
-  eq('kg input is identity', U.toKg(50), 50);
-  eq('formats with unit', U.w(52.5), '52.5 kg');
-  eq('bodyweight to 0.1', U.bw(82.44), '82.4 kg');
-  eq('rate is signed', U.rate(0.3), '+0.30 kg/week');
-  eq('kg step', U.step(), '0.5');
+  eq('exercise follows the default', U.unitFor('back-squat'), 'kg');
+  eq('kg is identity', U.toKg(50, 'back-squat'), 50);
+  eq('logged weight formats', U.w(52.5, 'back-squat'), '52.5 kg');
 
+  // ---- THE BUG THAT PROMPTED THIS: raw conversion produces unloadable numbers.
+  store.setExerciseUnit('machine-chest-press', 'lb');
+  const mcp = getExercise('machine-chest-press');
+  near('35 kg raw → 77.2 lb', U.toDisplay(35, 'machine-chest-press'), 77.16, 0.01);
+  eq('…but the SUGGESTION snaps to 75 lb', U.snap(35, mcp), 75);
+  eq('snapped and formatted', U.snapW(35, mcp), '75 lb');
+  ok('every lb suggestion is a multiple of 5',
+    [20, 35, 45, 60, 100].every((kg) => U.snap(kg, mcp) % 5 === 0),
+    JSON.stringify([20, 35, 45, 60, 100].map((kg) => U.snap(kg, mcp))));
+
+  // Real starting loads must land on selectable numbers.
+  store.setExerciseUnit('lat-pulldown', 'lb');
+  eq('45 kg pulldown → 100 lb', U.snap(45, pulldown), 100);
+  store.setExerciseUnit('db-lateral-raise', 'lb');
+  eq('6 kg dumbbell → 15 lb', U.snap(6, db), 15);
+  store.setExerciseUnit('back-squat', 'lb');
+  eq('45 kg squat → 100 lb', U.snap(45, squat), 100);
+  eq('lb barbell suggestions step by 5', U.snap(52.5, squat), 115);
+
+  // kg suggestions snap to kg increments.
+  store.setExerciseUnit('back-squat', 'kg');
+  eq('kg barbell snaps to 2.5', U.snap(51, squat), 50);
+  eq('kg barbell snaps up', U.snap(51.9, squat), 52.5);
+  store.setExerciseUnit('db-lateral-raise', 'kg');
+  eq('kg dumbbell snaps to 2', U.snap(7, db), 8);
+
+  // A positive suggestion must never snap away to zero.
+  store.setExerciseUnit('db-lateral-raise', 'lb');
+  ok('tiny suggestion snaps up, not to 0', U.snap(0.4, db) > 0, String(U.snap(0.4, db)));
+
+  // ---- MIXED GYM: exercises are independent of each other.
+  store.setExerciseUnit('back-squat', 'kg');
+  store.setExerciseUnit('lat-pulldown', 'lb');
+  eq('squat stays kg', U.unitFor('back-squat'), 'kg');
+  eq('pulldown is lb', U.unitFor('lat-pulldown'), 'lb');
+  eq('squat formats in kg', U.w(50, 'back-squat'), '50 kg');
+  eq('pulldown formats in lb', U.w(45, 'lat-pulldown'), '99 lb');
+
+  // Clearing an override falls back to the global default.
+  store.setExerciseUnit('lat-pulldown', null);
+  eq('cleared override follows default', U.unitFor('lat-pulldown'), 'kg');
   store.updateProfile({ units: 'lb' });
-  eq('unit switches to lb', U.unit(), 'lb');
-  ok('isLb', U.isLb());
-  near('50 kg → 110.2 lb', U.toDisplay(50), 110.23, 0.01);
-  eq('display rounds to nearest 0.5', U.num(50), '110');
-  eq('formats with lb', U.w(50), '110 lb');
-  eq('lb step is 1', U.step(), '1');
-  eq('bodyweight in lb', U.bw(82), '180.8 lb');
-  eq('rate in lb', U.rate(0.3), '+0.66 lb/week');
-  eq('volume in lb', U.volume(1000), '2,205 lb');
+  eq('…and tracks the default when it changes', U.unitFor('lat-pulldown'), 'lb');
+  eq('an override still wins over the default', U.unitFor('back-squat'), 'kg');
+  store.updateProfile({ units: 'kg' });
 
-  // THE critical property: typing a number in lb must store the right kg.
-  near('225 lb typed → 102.06 kg stored', U.toKg(225), 102.058, 0.01);
-  near('110 lb typed → 49.9 kg stored', U.toKg(110), 49.895, 0.01);
-
-  // Round-tripping must not drift — this is what protects logged history from a unit toggle.
-  for (const kg of [20, 45, 52.5, 60, 82.4, 100, 142.5]) {
-    const back = U.toKg(U.toDisplay(kg));
+  // ---- ROUND-TRIP: what protects logged history from any unit change.
+  store.setExerciseUnit('back-squat', 'lb');
+  near('225 lb typed → 102.06 kg', U.toKg(225, 'back-squat'), 102.058, 0.01);
+  for (const kg of [20, 45, 52.5, 60, 100, 142.5]) {
+    const back = U.toKg(U.toDisplay(kg, 'back-squat'), 'back-squat');
     ok(`round-trip ${kg} kg survives`, Math.abs(back - kg) < 0.002, `got ${back}`);
   }
 
-  // Plate denominations render in the display unit.
-  eq('20 kg plate shows as 44 lb', U.plateLabel(20), '44');
-  eq('2.5 kg plate shows as 5.5 lb', U.plateLabel(2.5), '5.5');
+  // ---- INCREMENTS follow the equipment's own unit.
+  near('lb barbell increment is 5 lb', U.incrementKg(squat), 2.268, 0.01);
+  store.setExerciseUnit('back-squat', 'kg');
+  eq('kg barbell increment is 2.5 kg', U.incrementKg(squat), 2.5);
 
-  // Switching back must not have mutated anything stored.
-  store.updateProfile({ units: 'kg' });
-  eq('back to kg', U.w(50), '50 kg');
-  eq('plate label back in kg', U.plateLabel(20), '20');
-
-  // progression.js hint strings must follow the display unit via the injected formatter.
-  const { setWeightFormatter, computeNextTarget } = await import(`${APP}/progression.js`);
+  // ---- progression hints use the exercise's unit and increment.
+  const { setWeightFormatter, setIncrementResolver, computeNextTarget } = await import(`${APP}/progression.js`);
+  setWeightFormatter((kg, ex) => U.w(kg, ex?.id));
+  setIncrementResolver((ex) => U.incrementKg(ex));
   const perfect = [{ date: '2026-08-01', sets: Array(4).fill({ weight: 50, reps: 8, rpe: 8 }) }];
-  eq('hint in kg by default', computeNextTarget(perfect, 'back-squat').note.includes('2.5 kg'), true);
-  setWeightFormatter(U.w);
-  store.updateProfile({ units: 'lb' });
+
+  eq('kg lift suggests +2.5 kg', computeNextTarget(perfect, 'back-squat').note.includes('2.5 kg'), true);
+  store.setExerciseUnit('back-squat', 'lb');
   const lbNote = computeNextTarget(perfect, 'back-squat').note;
-  ok('hint switches to lb', lbNote.includes('lb'), lbNote);
-  ok('hint no longer says kg', !lbNote.includes(' kg'), lbNote);
+  ok('lb lift suggests a lb jump', lbNote.includes('lb'), lbNote);
+  ok('lb lift never says kg', !lbNote.includes(' kg'), lbNote);
+  const lbTarget = computeNextTarget(perfect, 'back-squat');
+  eq('and the snapped target is loadable in lb', U.snap(lbTarget.weight, squat) % 5, 0);
+
+  // Bodyweight lifts still read as BW.
+  const { describePerformance } = await import(`${APP}/progression.js`);
+  const dip = getExercise('weighted-dip');
+  const bwPerf = { sets: [{ weight: 0, reps: 8 }, { weight: 0, reps: 8 }] };
+  eq('0 added weight shows as BW', describePerformance(bwPerf, dip), 'BW × 8, 8');
+  const loaded = { sets: [{ weight: 5, reps: 6 }, { weight: 5, reps: 6 }] };
+  ok('added weight shows as BW+', describePerformance(loaded, dip).startsWith('BW+'),
+    describePerformance(loaded, dip));
+
+  // Global-unit helpers stay on the default, not any exercise override.
   store.updateProfile({ units: 'kg' });
+  eq('bodyweight uses the default unit', U.bw(82.44), '82.4 kg');
+  eq('rate uses the default unit', U.rate(0.3), '+0.30 kg/week');
+
   setWeightFormatter((kg) => `${Number.isInteger(kg) ? kg : Number(kg).toFixed(1)} kg`);
+  setIncrementResolver((ex) => ex.increment);
   store.resetAll();
+}
+
+// ============================================================ warm-up
+section('Warm-up — ramp sets');
+{
+  const { rampSets, needsRamp, WARMUP } = await import(`${APP}/warmup.js`);
+  const { getExercise, exercisesForDay, DAYS } = await import(`${APP}/program.js`);
+
+  for (const d of DAYS) {
+    ok(`${d.key} has a general warm-up`, (WARMUP[d.key] || []).length >= 3);
+  }
+
+  const squat = getExercise('back-squat');
+  // Ramp count scales with how far there is to climb — a light bar needs fewer steps.
+  eq('40 kg squat → 2 ramp sets', rampSets(squat, 40, 20).length, 2);
+  eq('100 kg squat → 4 ramp sets', rampSets(squat, 100, 20).length, 4);
+  eq('first ramp is the empty bar', rampSets(squat, 100, 20)[0].weight, 20);
+
+  const ramps = rampSets(squat, 100, 20);
+  ok('ramps ascend', ramps.every((r, i) => i === 0 || r.weight > ramps[i - 1].weight));
+  ok('no ramp reaches the working weight', ramps.every((r) => r.weight < 100));
+  ok('ramp reps descend as weight climbs', ramps[1].reps > ramps[ramps.length - 1].reps);
+
+  // Bodyweight lifts rehearse rather than load.
+  eq('bodyweight lift gets an unloaded rehearsal', rampSets(getExercise('weighted-dip'), 0, 20)[0].weight, null);
+
+  // Only the opening lifts get ramped; accessories are already warm.
+  const upper = exercisesForDay('upper');
+  eq('Upper ramps exactly 2 exercises', upper.filter((e, i) => needsRamp(e, i, upper)).length, 2);
+  ok('…and the 2nd is the first LOADED lift after the bodyweight opener',
+    needsRamp(upper[1], 1, upper) && upper[0].unit === 'bodyweight');
+  const push = exercisesForDay('push');
+  ok('a late accessory never gets a ramp', !needsRamp(push[4], 4, push));
 }
 
 // ============================================================ service worker precache

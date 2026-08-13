@@ -41,9 +41,10 @@ export function render(root) {
     <div class="card">
       <div class="row between">
         <div>
-          <div class="chart-title">Units</div>
+          <div class="chart-title">Default units</div>
           <div class="xs muted">Display only — everything is stored in kg, so switching never
-            changes your logged history.</div>
+            changes your logged history. Mixed gym? Override any single exercise from its
+            <b>ⓘ</b> button on the Today screen.</div>
         </div>
         <div class="unit-toggle" id="unit-toggle">
           <button data-u="kg" aria-pressed="${!U.isLb()}">kg</button>
@@ -124,7 +125,7 @@ function wire(root) {
   const sleep = root.querySelector('#checkin-sleep');
 
   bw.addEventListener('change', () => {
-    store.saveDailyLog(iso, { bodyweightKg: bw.value === '' ? null : U.toKg(bw.value) });
+    store.saveDailyLog(iso, { bodyweightKg: bw.value === '' ? null : U.bwToKg(bw.value) });
     toast('Weight logged');
   });
   sleep.addEventListener('change', () => {
@@ -148,11 +149,11 @@ function wire(root) {
       const key = input.dataset.p;
       let value = input.value;
       if (key === 'platesKg') {
-        value = value.split(',').map((s) => U.toKg(s.trim()))
+        value = value.split(',').map((s) => U.bwToKg(s.trim()))
           .filter((n) => n > 0).sort((a, b) => b - a);
         if (!value.length) return toast('Need at least one plate size');
       } else if (key === 'barWeightKg') {
-        value = value === '' ? null : U.toKg(value);
+        value = value === '' ? null : U.bwToKg(value);
       } else if (key === 'heightCm') {
         value = value === '' ? null : Number(value);
       }
