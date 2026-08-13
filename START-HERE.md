@@ -61,10 +61,27 @@ This is the part that fixes your energy. **The 4pm meal is the important one.**
 | Time | Do this |
 |---|---|
 | **12–1pm** | Brunch as normal. **Have your coffee now.** This is your last caffeine of the day. |
-| **4:00pm** | **Eat:** 1 banana + 4 dates + 1 scoop whey.<br>**Drink:** 8 g citrulline malate (about 2 teaspoons) in water. |
+| **4:00pm** | **Eat:** 1 banana + 4 dates + 1 scoop whey. *(Or blend it — see below.)*<br>**Drink:** 8 g citrulline malate (about 2 teaspoons) in water. |
 | **5:15pm** | Only if you feel flat: another banana. |
 | **5:30pm** | Train. Just water during the session. |
 | **7:15pm** | Dinner — rice/roti + chicken/paneer/dal + curd. |
+
+### The 4pm smoothie (easiest version)
+
+Blend together:
+- 1 **banana**
+- 250 ml **milk** (or water)
+- 4 **dates**, or 1 tbsp honey
+- 1 scoop **whey**
+
+**≈ 60 g carbs, 33 g protein.** Two minutes, one glass, hits the target exactly. A blended version
+actually sits lighter than solid food, because liquids leave your stomach faster.
+
+**Careful:** a banana on its own is only ~25 g of carbs — not enough. **The dates (or honey) are
+what get you to the target.** Don't skip them.
+
+**If milk bloats you, use water.** Lactose trouble is common and you don't want a gassy stomach
+under a barbell. You'll know after a session or two.
 
 ### The one rule about coffee
 **No caffeine after 1pm. Ever.** Not tea, not Coke, not a pre-workout.
