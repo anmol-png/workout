@@ -13,7 +13,7 @@ import {
 import * as store from '../store.js';
 import {
   weeklyVolume, weeklySetCounts, weekStart, addDays, e1RMSeries, bestE1RM,
-  bodyweightSeries, bodyweightTrend, currentStreak,
+  bodyweightSeries, bodyweightTrend, currentStreak, personalBests,
 } from '../stats.js';
 import { lineChart, volumeBars, bindChartTooltips } from '../charts.js';
 import { escapeHtml } from '../ui.js';
@@ -146,19 +146,31 @@ export function render(root) {
     </div>`);
   }
 
-  // ── PRs.
-  const prs = recentPRs();
-  if (prs.length) {
+  // ── Personal bests. Shown from the first session — every lift has a baseline worth seeing.
+  // "NEW" is reserved for a session that genuinely beat an earlier one.
+  const bests = personalBests();
+  if (bests.length) {
+    const fresh = bests.filter((b) => b.isNew).length;
     html.push(`<div class="card">
-      <div class="chart-title">Recent PRs</div>
-      <div class="chart-sub">Best estimated 1RM per lift · needs 2+ sessions</div>
-      ${prs.map((p) => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--line)">
-        <span class="small">${escapeHtml(p.name)}</span>
-        <span class="row" style="gap:8px">
-          <span class="xs dim">${formatDate(p.date)}</span>
-          <span class="pill pr">${U.w(p.value, p.id)}</span>
-        </span>
-      </div>`).join('')}
+      <div class="chart-title">Personal bests</div>
+      <div class="chart-sub">Your best set on each lift${fresh ? ` · ${fresh} new this block` : ''}</div>
+      ${bests.map((b) => {
+        const base = getExercise(b.id);
+        const ex = resolveExercise(base, store.getSubstitution(b.id));
+        const load = ex.unit === 'bodyweight'
+          ? ((Number(b.set.weight) || 0) > 0 ? `BW+${U.num(b.set.weight, b.id)}` : 'BW')
+          : U.w(b.set.weight, b.id);
+        return `<div class="pb">
+          <span class="grow">
+            <b class="small">${escapeHtml(ex.name)}</b>
+            <div class="xs muted">${load} × ${b.set.reps}${b.set.rpe ? ` @ RPE ${b.set.rpe}` : ''} · ${formatDate(b.date)}</div>
+          </span>
+          ${b.isNew ? '<span class="pill pr">NEW</span>' : ''}
+          <span class="pb-e1rm">${U.num(b.e1rm, b.id)}<span class="dim"> ${U.unitFor(b.id)}</span></span>
+        </div>`;
+      }).join('')}
+      <p class="xs muted mt">The number on the right is your <b>estimated 1-rep max</b> — what that
+        set suggests you could lift once. It's how sets at different weights and reps get compared.</p>
     </div>`);
   }
 
@@ -176,25 +188,6 @@ export function render(root) {
   });
 }
 
-function recentPRs() {
-  const out = [];
-  for (const base of EXERCISES) {
-    if (base.isFinisher) continue;
-    // Show what was actually PERFORMED. Reporting a PR on "Weighted Dip" when the slot was
-    // swapped to Incline DB Press is simply wrong — you never did that lift.
-    const ex = resolveExercise(base, store.getSubstitution(base.id));
-    const history = store.historyFor(base.id);
-    // Needs at least two sessions: a single session has nothing to be a record against.
-    if (history.length < 2) continue;
-    let best = 0; let bestDate = null;
-    for (const h of history) {
-      const v = bestE1RM(h.sets);
-      if (v > best) { best = v; bestDate = h.date; }
-    }
-    if (best > 0) out.push({ id: base.id, name: ex.name, value: best, date: bestDate });
-  }
-  return out.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
-}
 
 function trendCopy(t) {
   if (!t.ready) return 'Need ~2 weeks of daily weigh-ins before this means anything.';

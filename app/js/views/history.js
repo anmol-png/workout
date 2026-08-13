@@ -9,7 +9,7 @@
 import { getDay, getExercise, resolveExercise } from '../program.js';
 import * as store from '../store.js';
 import {
-  sessionVolume, sessionSetCount, currentStreak, weekStart, weeklySetCounts, bestE1RM, e1RM,
+  sessionVolume, sessionSetCount, currentStreak, weekStart, weeklySetCounts, bestE1RM, bestSet,
 } from '../stats.js';
 import { openSheet, confirmSheet, toast, escapeHtml } from '../ui.js';
 import * as U from '../units.js';
@@ -110,19 +110,10 @@ function showSession(id) {
     // could be stale from before the duplicate-session bug was fixed.
     const allTime = bestE1RM(store.historyFor(ex.id).flatMap((h) => h.sets));
 
-    // Exactly ONE set gets the badge. e1RM caps effective reps at 12 (the formula is unreliable
-    // above that), so 15 reps and 12 reps at the same weight score identically — comparing on
-    // value alone lit up every set. Pick a single winner, breaking ties on actual reps.
-    let bestIdx = -1;
-    let bestKey = [-1, -1, -1];
-    sets.forEach((x, i) => {
-      const key = [e1RM(x.weight, x.reps, x.rpe), Number(x.reps) || 0, Number(x.weight) || 0];
-      if (key[0] > bestKey[0] || (key[0] === bestKey[0] && key[1] > bestKey[1])) {
-        bestKey = key;
-        bestIdx = i;
-      }
-    });
-    const tiesAllTime = allTime > 0 && bestKey[0] >= allTime - 0.01;
+    // Exactly ONE set gets the badge — shared comparator so History and Stats always agree.
+    const top = bestSet(sets);
+    const bestIdx = top ? sets.indexOf(top.set) : -1;
+    const tiesAllTime = top && allTime > 0 && top.e1rm >= allTime - 0.01;
 
     const rows = sets.map((x, i) => {
       const isBest = i === bestIdx && tiesAllTime;

@@ -6,7 +6,9 @@
  */
 
 import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES, DAYS } from './program.js';
-import { getSessions, getDailyLogs, todayISO, parseISO, daysBetween } from './store.js';
+import {
+  getSessions, getDailyLogs, todayISO, parseISO, daysBetween, historyFor as getHistoryFor,
+} from './store.js';
 
 // ---------------------------------------------------------------- estimated 1RM
 
@@ -253,4 +255,66 @@ export function e1RMSeries(history) {
   return history
     .map((h) => ({ date: h.date, value: bestE1RM(h.sets) }))
     .filter((p) => p.value > 0);
+}
+
+/**
+ * The single best set in a list, by estimated 1RM.
+ *
+ * Ties are broken on actual reps because e1RM caps effective reps at 12 — above that the formula
+ * is unreliable — so 22 reps and 15 reps at the same weight score identically. Without the
+ * tiebreak, "best" is arbitrary among them.
+ */
+export function bestSet(sets) {
+  let best = null;
+  let key = [-1, -1, -1];
+  for (const x of sets) {
+    if (!(x.reps > 0)) continue;
+    const k = [e1RM(x.weight, x.reps, x.rpe), Number(x.reps) || 0, Number(x.weight) || 0];
+    if (k[0] > key[0] || (k[0] === key[0] && k[1] > key[1])) { key = k; best = x; }
+  }
+  return best ? { set: best, e1rm: key[0] } : null;
+}
+
+/**
+ * Your best set on every lift you've trained.
+ *
+ * Deliberately NOT gated on having two sessions. On a fresh program every first session sets a
+ * baseline, and hiding all of it until week two is both demotivating and unhelpful — you want to
+ * know your numbers. What IS gated is the word "new": that only appears when a session genuinely
+ * beat an earlier one, so the badge keeps its meaning.
+ */
+export function personalBests() {
+  const out = [];
+
+  for (const ex of EXERCISES) {
+    if (ex.isFinisher) continue;
+    const history = getHistoryFor(ex.id);
+    if (!history.length) continue;
+
+    let best = null;
+    let bestDate = null;
+    let bestIndex = -1;
+
+    history.forEach((h, i) => {
+      const b = bestSet(h.sets);
+      if (b && (!best || b.e1rm > best.e1rm)) { best = b; bestDate = h.date; bestIndex = i; }
+    });
+    if (!best) continue;
+
+    // "New" means it improved on something, not merely that it exists.
+    const priorBest = history.slice(0, bestIndex)
+      .map((h) => bestSet(h.sets)?.e1rm || 0)
+      .reduce((a, b) => Math.max(a, b), 0);
+
+    out.push({
+      id: ex.id,
+      set: best.set,
+      e1rm: best.e1rm,
+      date: bestDate,
+      isNew: bestIndex > 0 && best.e1rm > priorBest,
+      sessions: history.length,
+    });
+  }
+
+  return out.sort((a, b) => (b.isNew - a.isNew) || b.date.localeCompare(a.date));
 }

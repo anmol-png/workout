@@ -626,6 +626,55 @@ section('Per-set projection — reps fall as fatigue builds');
   eq('describeProjection formats', describeProjection([{ reps: 8 }, { reps: 7 }, { reps: 6 }]), '8 / 7 / 6');
 }
 
+// ============================================================ personal bests
+section('Personal bests');
+{
+  const { personalBests, bestSet } = statsMod;
+  store.resetAll();
+
+  // bestSet breaks e1RM ties on actual reps — the formula caps effective reps at 12, so 22 and
+  // 15 reps at one weight score identically and "best" would otherwise be arbitrary.
+  const tie = bestSet([{ weight: 12.5, reps: 15 }, { weight: 12.5, reps: 22 }]);
+  eq('tie broken on reps', tie.set.reps, 22);
+  eq('empty list', bestSet([{ weight: 10, reps: 0 }]), null);
+
+  // Visible from the FIRST session — a baseline is worth seeing.
+  store.upsertSession({ id: 'a', date: '2026-08-13', dayKey: 'upper', week: 1, notes: '', entries: [
+    { exerciseId: 'lat-pulldown', sets: [
+      { weight: 25, reps: 12, done: true }, { weight: 30, reps: 8, done: true }] },
+  ] });
+  let pb = personalBests();
+  eq('one lift has a best', pb.length, 1);
+  eq('picks the highest e1RM set', pb[0].set.weight, 30);
+  ok('not flagged NEW on the first session', !pb[0].isNew);
+
+  // A later session that beats it IS new.
+  store.upsertSession({ id: 'b', date: '2026-08-20', dayKey: 'upper', week: 2, notes: '', entries: [
+    { exerciseId: 'lat-pulldown', sets: [{ weight: 35, reps: 9, done: true }] },
+  ] });
+  pb = personalBests();
+  eq('best updates to the heavier set', pb[0].set.weight, 35);
+  ok('flagged NEW after beating a prior session', pb[0].isNew);
+  eq('dated to the session that set it', pb[0].date, '2026-08-20');
+
+  // A later session that does NOT beat it leaves the record where it was.
+  store.upsertSession({ id: 'c', date: '2026-08-27', dayKey: 'upper', week: 3, notes: '', entries: [
+    { exerciseId: 'lat-pulldown', sets: [{ weight: 20, reps: 6, done: true }] },
+  ] });
+  pb = personalBests();
+  eq('weaker session does not overwrite the best', pb[0].set.weight, 35);
+  eq('best keeps its original date', pb[0].date, '2026-08-20');
+
+  // Unticked sets count here too.
+  store.resetAll();
+  store.upsertSession({ id: 'd', date: '2026-08-13', dayKey: 'push', week: 1, notes: '', entries: [
+    { exerciseId: 'bench-press', sets: [{ weight: 60, reps: 5, done: false }] },
+  ] });
+  eq('unticked set can be a personal best', personalBests()[0].set.weight, 60);
+
+  store.resetAll();
+}
+
 // ============================================================ service worker precache
 section('Service worker — precache list matches the file tree');
 {

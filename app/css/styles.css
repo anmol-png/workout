@@ -503,3 +503,8 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .sess-tbl td:nth-child(3) { width: 24%; }
 .sess-tbl td:last-child { text-align: right; }
 .sess-tbl tr.best td { color: var(--pr); }
+
+/* Personal bests */
+.pb { display: flex; align-items: center; gap: 9px; padding: 9px 0; border-top: 1px solid var(--line); }
+.pb-e1rm { font-size: 15px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pb-e1rm .dim { font-size: 11px; font-weight: 600; }
