@@ -9,6 +9,7 @@ import * as store from '../store.js';
 import { BLOCK_WEEKS, DELOAD_WEEK } from '../program.js';
 import { bodyweightTrend } from '../stats.js';
 import { confirmSheet, toast } from '../ui.js';
+import * as U from '../units.js';
 
 export function title() { return 'Me'; }
 export function subtitle() {
@@ -38,10 +39,25 @@ export function render(root) {
     </div>` : ''}
 
     <div class="card">
+      <div class="row between">
+        <div>
+          <div class="chart-title">Units</div>
+          <div class="xs muted">Display only — everything is stored in kg, so switching never
+            changes your logged history.</div>
+        </div>
+        <div class="unit-toggle" id="unit-toggle">
+          <button data-u="kg" aria-pressed="${!U.isLb()}">kg</button>
+          <button data-u="lb" aria-pressed="${U.isLb()}">lb</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="chart-title mb">Today's check-in</div>
-      <label class="field"><span>Bodyweight (kg) — morning, after the bathroom, before eating</span>
+      <label class="field"><span>Bodyweight (${U.unit()}) — morning, after the bathroom, before eating</span>
         <input class="input" type="number" inputmode="decimal" step="0.1" id="checkin-bw"
-          value="${log.bodyweightKg ?? ''}" placeholder="${p.startingWeightKg}"></label>
+          value="${log.bodyweightKg == null ? '' : U.bw(log.bodyweightKg, false)}"
+          placeholder="${U.bw(p.startingWeightKg, false)}"></label>
       <label class="field"><span>Sleep last night (hours)</span>
         <input class="input" type="number" inputmode="decimal" step="0.5" id="checkin-sleep"
           value="${log.sleepHours ?? ''}" placeholder="6.5"></label>
@@ -52,8 +68,8 @@ export function render(root) {
         <p class="xs muted" style="margin-top:6px">1 = wrecked · 5 = excellent.
           Under 6 h sleep or 2 or below triggers the autoregulation cut on Today.</p>
       </div>
-      ${trend.ready ? `<p class="xs muted">7-day average: <b>${trend.current.toFixed(1)} kg</b> ·
-        ${trend.ratePerWeek >= 0 ? '+' : ''}${trend.ratePerWeek.toFixed(2)} kg/week</p>` : ''}
+      ${trend.ready ? `<p class="xs muted">7-day average: <b>${U.bw(trend.current)}</b> ·
+        ${U.rate(trend.ratePerWeek)}</p>` : ''}
     </div>
 
     <div class="card">
@@ -61,12 +77,12 @@ export function render(root) {
       <label class="field"><span>Height (cm) — affects form cues only, never load</span>
         <input class="input" type="number" inputmode="numeric" data-p="heightCm"
           value="${p.heightCm ?? ''}" placeholder="e.g. 175"></label>
-      <label class="field"><span>Barbell weight (kg)</span>
-        <input class="input" type="number" inputmode="decimal" step="0.5" data-p="barWeightKg"
-          value="${p.barWeightKg}"></label>
-      <label class="field"><span>Plates available per side (kg, comma separated)</span>
+      <label class="field"><span>Barbell weight (${U.unit()})</span>
+        <input class="input" type="number" inputmode="decimal" step="${U.step()}" data-p="barWeightKg"
+          value="${U.num(p.barWeightKg)}"></label>
+      <label class="field"><span>Plates available per side (${U.unit()}, comma separated)</span>
         <input class="input" type="text" inputmode="decimal" data-p="platesKg"
-          value="${p.platesKg.join(', ')}"></label>
+          value="${p.platesKg.map((x) => U.num(x)).join(', ')}"></label>
       <label class="field"><span>Program start date — sets your week number</span>
         <input class="input" type="date" data-p="programStart" value="${p.programStart}"></label>
     </div>
@@ -87,7 +103,7 @@ export function render(root) {
 
     <div class="card">
       <div class="chart-title mb">The program</div>
-      <p class="small muted">5-day PPLUL · ~89 working sets/week, ~35 of them legs ·
+      <p class="small muted">5-day PPLUL · 90 working sets/week, 35 of them legs ·
         ${BLOCK_WEEKS}-week blocks with a deload in week ${DELOAD_WEEK}.</p>
       <div class="divider"></div>
       <p class="xs muted">Full write-ups with the reasoning behind every set, rep and RPE live in the
@@ -108,7 +124,7 @@ function wire(root) {
   const sleep = root.querySelector('#checkin-sleep');
 
   bw.addEventListener('change', () => {
-    store.saveDailyLog(iso, { bodyweightKg: bw.value === '' ? null : Number(bw.value) });
+    store.saveDailyLog(iso, { bodyweightKg: bw.value === '' ? null : U.toKg(bw.value) });
     toast('Weight logged');
   });
   sleep.addEventListener('change', () => {
@@ -132,13 +148,24 @@ function wire(root) {
       const key = input.dataset.p;
       let value = input.value;
       if (key === 'platesKg') {
-        value = value.split(',').map((s) => Number(s.trim())).filter((n) => n > 0).sort((a, b) => b - a);
+        value = value.split(',').map((s) => U.toKg(s.trim()))
+          .filter((n) => n > 0).sort((a, b) => b - a);
         if (!value.length) return toast('Need at least one plate size');
-      } else if (key === 'heightCm' || key === 'barWeightKg') {
+      } else if (key === 'barWeightKg') {
+        value = value === '' ? null : U.toKg(value);
+      } else if (key === 'heightCm') {
         value = value === '' ? null : Number(value);
       }
       store.updateProfile({ [key]: value });
       toast('Saved');
+    });
+  });
+
+  root.querySelectorAll('#unit-toggle button').forEach((b) => {
+    b.addEventListener('click', () => {
+      store.updateProfile({ units: b.dataset.u });
+      window.dispatchEvent(new CustomEvent('view:rerender'));
+      toast(`Showing weights in ${b.dataset.u}`);
     });
   });
 

@@ -16,6 +16,7 @@ import { isPersonalRecord, e1RM } from '../stats.js';
 import { startTimer } from '../timer.js';
 import { openSheet, toast, escapeHtml } from '../ui.js';
 import { computePlates, plateClass } from '../plates.js';
+import * as U from '../units.js';
 
 let selectedDay = null;
 let autoOn = false;
@@ -132,9 +133,9 @@ function exerciseCard(ex, session) {
     rows.push(`
       <div class="set ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
         <span class="set-n">${s.isPR ? '★' : i + 1}</span>
-        <input type="number" inputmode="decimal" step="0.5" data-f="weight"
-          placeholder="${target.weight != null ? fmtNum(target.weight) : 'kg'}"
-          value="${s.weight ?? ''}" aria-label="Set ${i + 1} weight">
+        <input type="number" inputmode="decimal" step="${U.step()}" data-f="weight"
+          placeholder="${target.weight != null ? U.num(target.weight) : U.unit()}"
+          value="${s.weight == null ? '' : U.num(s.weight)}" aria-label="Set ${i + 1} weight">
         <input type="number" inputmode="numeric" step="1" data-f="reps"
           placeholder="${target.reps || ex.repRange[0]}"
           value="${s.reps ?? ''}" aria-label="Set ${i + 1} reps">
@@ -166,7 +167,7 @@ function exerciseCard(ex, session) {
           : escapeHtml(target.note)}</span>
       </div>
       <div class="sets">
-        <div class="sets-head"><span></span><span>kg</span><span>reps</span><span>rpe</span><span></span></div>
+        <div class="sets-head"><span></span><span>${U.unit()}</span><span>reps</span><span>rpe</span><span></span></div>
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}
@@ -252,8 +253,9 @@ function updateSetField(input, session) {
   const row = input.closest('.set');
   const entry = entryFor(session, row.dataset.ex);
   const set = setAt(entry, Number(row.dataset.i));
-  const v = input.value === '' ? null : Number(input.value);
-  set[input.dataset.f] = v;
+  // Weight arrives in the display unit; everything is stored in kg.
+  const raw = input.value === '' ? null : Number(input.value);
+  set[input.dataset.f] = (raw != null && input.dataset.f === 'weight') ? U.toKg(raw) : raw;
   store.upsertSession(session);
 }
 
@@ -277,7 +279,7 @@ function toggleSet(row, session) {
   const inputs = row.querySelectorAll('input');
   inputs.forEach((inp) => {
     const v = inp.value === '' ? null : Number(inp.value);
-    if (v != null) set[inp.dataset.f] = v;
+    if (v != null) set[inp.dataset.f] = inp.dataset.f === 'weight' ? U.toKg(v) : v;
   });
 
   if (set.reps == null) {
@@ -286,7 +288,7 @@ function toggleSet(row, session) {
     set.reps = t.reps || ex.repRange[0];
     if (set.weight == null && t.weight != null) set.weight = t.weight;
     row.querySelector('[data-f="reps"]').value = set.reps;
-    if (set.weight != null) row.querySelector('[data-f="weight"]').value = set.weight;
+    if (set.weight != null) row.querySelector('[data-f="weight"]').value = U.num(set.weight);
   }
 
   set.done = true;
@@ -305,7 +307,7 @@ function toggleSet(row, session) {
   store.upsertSession(session);
 
   if (pr.isPR) {
-    toast(`PR — ${escapeHtml(ex.name)}, e1RM ${pr.value.toFixed(1)} kg`, 'pr');
+    toast(`PR — ${escapeHtml(ex.name)}, e1RM ${U.w(pr.value)}`, 'pr');
     if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 120]);
   }
 
@@ -326,7 +328,7 @@ function prefill(ex, session) {
   }
   store.upsertSession(session);
   rerender();
-  toast(`Filled ${fmtNum(t.weight)} kg × ${t.reps}`);
+  toast(`Filled ${U.w(t.weight)} × ${t.reps}`);
 }
 
 function markFinisher(ex, session) {
@@ -383,27 +385,27 @@ function showPlates(ex, session) {
 
   openSheet(`
     <h2>Plate calculator</h2>
-    <p class="sheet-sub">${escapeHtml(ex.name)} · ${p.barWeightKg} kg bar</p>
-    <label class="field"><span>Total weight (kg)</span>
-      <input class="input" type="number" inputmode="decimal" step="0.5" id="plate-target" value="${initial}">
+    <p class="sheet-sub">${escapeHtml(ex.name)} · ${U.w(p.barWeightKg)} bar</p>
+    <label class="field"><span>Total weight (${U.unit()})</span>
+      <input class="input" type="number" inputmode="decimal" step="${U.step()}" id="plate-target" value="${U.num(initial)}">
     </label>
     <div id="plate-out"></div>
   `, (sheet) => {
     const input = sheet.querySelector('#plate-target');
     const out = sheet.querySelector('#plate-out');
     const draw = () => {
-      const r = computePlates(Number(input.value), p.barWeightKg, p.platesKg);
+      const r = computePlates(U.toKg(input.value), p.barWeightKg, p.platesKg);
       if (r.barOnly) {
-        out.innerHTML = `<p class="center muted small">Empty ${p.barWeightKg} kg bar.</p>`;
+        out.innerHTML = `<p class="center muted small">Empty ${U.w(p.barWeightKg)} bar.</p>`;
         return;
       }
       out.innerHTML = `
         <p class="center small muted mb">Per side, heaviest first</p>
-        <div class="plate-stack">${r.perSide.map((kg) => `<span class="plate ${plateClass(kg)}">${fmtNum(kg)}</span>`).join('') || '<span class="muted small">nothing</span>'}</div>
+        <div class="plate-stack">${r.perSide.map((kg) => `<span class="plate ${plateClass(kg)}">${U.plateLabel(kg)}</span>`).join('') || '<span class="muted small">nothing</span>'}</div>
         <div class="bar-line"></div>
         <p class="center small">${r.ok
-          ? `<b>${fmtNum(r.achieved)} kg</b> total`
-          : `Closest loadable: <b>${fmtNum(r.achieved)} kg</b> <span class="muted">(${r.remainder > 0 ? `${fmtNum(r.remainder)} kg short` : 'over'})</span>`}</p>`;
+          ? `<b>${U.w(r.achieved)}</b> total`
+          : `Closest loadable: <b>${U.w(r.achieved)}</b> <span class="muted">(${r.remainder > 0 ? `${U.w(r.remainder)} short` : 'over'})</span>`}</p>`;
     };
     input.addEventListener('input', draw);
     draw();

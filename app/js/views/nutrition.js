@@ -9,6 +9,7 @@
 
 import { NUTRITION } from '../program.js';
 import { bodyweightTrend } from '../stats.js';
+import * as U from '../units.js';
 
 const FOODS = [
   ['Soya chunks (dry)', '50 g', '~26 g'],
@@ -76,9 +77,9 @@ export function render(root) {
       <p class="small muted mt">Weigh yourself every morning, after the bathroom, before eating.
         Only look at the <b>7-day average</b>. Then, every two weeks:</p>
       <table class="food-tbl mt">
-        <tr><td>Gaining 0.2–0.4 kg/wk</td><td>Change nothing</td></tr>
+        <tr><td>Gaining ${U.isLb() ? '0.45–0.9 lb' : '0.2–0.4 kg'}/wk</td><td>Change nothing</td></tr>
         <tr><td>Flat</td><td>+250 kcal/day</td></tr>
-        <tr><td>Gaining &gt; 0.5 kg/wk</td><td>−200 kcal/day</td></tr>
+        <tr><td>Gaining &gt; ${U.isLb() ? '1.1 lb' : '0.5 kg'}/wk</td><td>−200 kcal/day</td></tr>
         <tr><td>Losing</td><td>+350 kcal/day</td></tr>
       </table>
     </div>
@@ -159,12 +160,12 @@ function adviceBanner(trend) {
       whether to add or cut calories. Until then, eat to the targets below.
     </div>`;
   }
-  const rate = `${trend.ratePerWeek >= 0 ? '+' : ''}${trend.ratePerWeek.toFixed(2)} kg/week`;
+  const rate = U.rate(trend.ratePerWeek);
   const map = {
     'on-target': ['good', `<b>${rate} — on target.</b> This is exactly the rate you want. Change nothing.`],
     flat: ['warn', `<b>${rate} — you're flat.</b> Add ~250 kcal/day and re-check in two weeks.`],
     losing: ['warn', `<b>${rate} — you're losing weight.</b> Add ~350 kcal/day. You can't build much in a deficit.`],
-    fast: ['warn', `<b>${rate} — faster than the 0.45 ceiling.</b> Cut ~200 kcal/day; the excess is mostly fat.`],
+    fast: ['warn', `<b>${rate} — above the target range.</b> Cut ~200 kcal/day; the excess is mostly fat.`],
   };
   const [variant, text] = map[trend.verdict] || ['accent', rate];
   return `<div class="banner ${variant}">${text}

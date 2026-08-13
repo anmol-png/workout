@@ -431,3 +431,16 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ---------------------------------------------------------------- unit toggle */
+
+.unit-toggle {
+  display: flex; flex-shrink: 0; gap: 2px; padding: 2px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+}
+.unit-toggle button {
+  min-width: 44px; min-height: 34px; border-radius: 8px;
+  font-size: 13px; font-weight: 700; color: var(--muted);
+  transition: background .15s ease, color .15s ease;
+}
+.unit-toggle button[aria-pressed="true"] { background: var(--accent); color: #06101f; }

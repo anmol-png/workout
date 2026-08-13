@@ -7,6 +7,8 @@
  */
 
 import { initUI, toast } from './ui.js';
+import { setWeightFormatter } from './progression.js';
+import * as U from './units.js';
 import { initTimer } from './timer.js';
 import * as today from './views/today.js';
 import * as history from './views/history.js';
@@ -52,6 +54,10 @@ function render() {
 function boot() {
   initUI();
   initTimer();
+
+  // progression.js stays unit-agnostic and computes in kg; give it the display formatter so its
+  // hint strings ("up 5.5 lb, back to 5 reps") read in whatever unit the user has selected.
+  setWeightFormatter(U.w);
 
   window.addEventListener('hashchange', () => {
     render();

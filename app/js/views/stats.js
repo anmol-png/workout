@@ -15,6 +15,7 @@ import {
 } from '../stats.js';
 import { lineChart, volumeBars, bindChartTooltips } from '../charts.js';
 import { escapeHtml } from '../ui.js';
+import * as U from '../units.js';
 
 /** Muscle display order — legs first, because legs are the priority of this program. */
 const ORDER = [
@@ -96,12 +97,13 @@ export function render(root) {
 
     html.push(`<div class="card">
       <div class="chart-title">Estimated 1RM</div>
-      <div class="chart-sub">${escapeHtml(active.ex.name)}${gain > 0 ? ` · +${gain.toFixed(1)} kg since you started` : ''}</div>
+      <div class="chart-sub">${escapeHtml(active.ex.name)}${gain > 0 ? ` · +${U.w(gain)} since you started` : ''}</div>
       <div class="row wrap mb" style="gap:6px">
         ${lifts.map((l) => `<button class="btn sm ${l.ex.id === selectedLift ? 'primary' : 'ghost'}"
           data-lift="${l.ex.id}">${escapeHtml(shortName(l.ex.name))}</button>`).join('')}
       </div>
-      ${lineChart(series, { label: 'Estimated 1RM', unit: ' kg' })}
+      ${lineChart(series.map((p) => ({ ...p, value: Number(U.num(p.value)) })),
+        { label: 'Estimated 1RM', unit: ` ${U.unit()}` })}
       <p class="xs muted mt">Epley, adjusted for reps-in-reserve from your logged RPE.</p>
     </div>`);
   }
@@ -109,8 +111,9 @@ export function render(root) {
   // ── Bodyweight.
   if (bwSeries.length) {
     const p = store.getProfile();
-    const daily = bwSeries.map((x) => ({ date: x.date, value: x.kg }));
-    const avg = bwSeries.map((x) => ({ date: x.date, value: Math.round(x.avg * 10) / 10 }));
+    // Convert to the display unit before charting — the axis and tooltip read these directly.
+    const daily = bwSeries.map((x) => ({ date: x.date, value: Number(U.bw(x.kg, false)) }));
+    const avg = bwSeries.map((x) => ({ date: x.date, value: Number(U.bw(x.avg, false)) }));
 
     html.push(`<div class="card">
       <div class="chart-title">Bodyweight</div>
@@ -119,11 +122,12 @@ export function render(root) {
         series2: daily,
         label: '7-day average',
         label2: 'Daily',
-        unit: ' kg',
+        unit: ` ${U.unit()}`,
         dots: false,
       })}
-      <p class="xs muted mt">Only the 7-day average is worth acting on — daily weight swings 1–2 kg on
-        water and food volume. Target: 0.2–0.4 kg/week.</p>
+      <p class="xs muted mt">Only the 7-day average is worth acting on — daily weight swings
+        ${U.isLb() ? '2–4 lb' : '1–2 kg'} on water and food volume.
+        Target: ${U.isLb() ? '0.45–0.9 lb' : '0.2–0.4 kg'}/week.</p>
     </div>`);
   } else {
     html.push(`<div class="card">
@@ -144,7 +148,7 @@ export function render(root) {
         <span class="small">${escapeHtml(p.name)}</span>
         <span class="row" style="gap:8px">
           <span class="xs dim">${formatDate(p.date)}</span>
-          <span class="pill pr">${p.value.toFixed(1)} kg</span>
+          <span class="pill pr">${U.w(p.value)}</span>
         </span>
       </div>`).join('')}
     </div>`);
@@ -182,13 +186,12 @@ function recentPRs() {
 
 function trendCopy(t) {
   if (!t.ready) return 'Need ~2 weeks of daily weigh-ins before this means anything.';
-  const rate = t.ratePerWeek;
-  const r = `${rate >= 0 ? '+' : ''}${rate.toFixed(2)} kg/week`;
+  const r = U.rate(t.ratePerWeek);
   switch (t.verdict) {
     case 'on-target': return `${r} — on target. Change nothing.`;
     case 'flat': return `${r} — flat. Add ~250 kcal/day.`;
     case 'losing': return `${r} — losing. Add ~350 kcal/day.`;
-    case 'fast': return `${r} — faster than 0.45. Cut ~200 kcal/day, that's mostly fat.`;
+    case 'fast': return `${r} — too fast. Cut ~200 kcal/day, that's mostly fat.`;
     default: return r;
   }
 }

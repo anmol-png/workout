@@ -309,6 +309,65 @@ section('Autoregulation');
   ok('nothing falls below 2 sets', cut.every((e) => e.sets >= 2));
 }
 
+// ============================================================ units
+section('Units — kg ⇄ lb display conversion');
+{
+  const U = await import(`${APP}/units.js`);
+  store.resetAll();
+
+  // Default is kg and must be a pure pass-through.
+  eq('default unit is kg', U.unit(), 'kg');
+  eq('kg → display is identity', U.toDisplay(50), 50);
+  eq('kg input is identity', U.toKg(50), 50);
+  eq('formats with unit', U.w(52.5), '52.5 kg');
+  eq('bodyweight to 0.1', U.bw(82.44), '82.4 kg');
+  eq('rate is signed', U.rate(0.3), '+0.30 kg/week');
+  eq('kg step', U.step(), '0.5');
+
+  store.updateProfile({ units: 'lb' });
+  eq('unit switches to lb', U.unit(), 'lb');
+  ok('isLb', U.isLb());
+  near('50 kg → 110.2 lb', U.toDisplay(50), 110.23, 0.01);
+  eq('display rounds to nearest 0.5', U.num(50), '110');
+  eq('formats with lb', U.w(50), '110 lb');
+  eq('lb step is 1', U.step(), '1');
+  eq('bodyweight in lb', U.bw(82), '180.8 lb');
+  eq('rate in lb', U.rate(0.3), '+0.66 lb/week');
+  eq('volume in lb', U.volume(1000), '2,205 lb');
+
+  // THE critical property: typing a number in lb must store the right kg.
+  near('225 lb typed → 102.06 kg stored', U.toKg(225), 102.058, 0.01);
+  near('110 lb typed → 49.9 kg stored', U.toKg(110), 49.895, 0.01);
+
+  // Round-tripping must not drift — this is what protects logged history from a unit toggle.
+  for (const kg of [20, 45, 52.5, 60, 82.4, 100, 142.5]) {
+    const back = U.toKg(U.toDisplay(kg));
+    ok(`round-trip ${kg} kg survives`, Math.abs(back - kg) < 0.002, `got ${back}`);
+  }
+
+  // Plate denominations render in the display unit.
+  eq('20 kg plate shows as 44 lb', U.plateLabel(20), '44');
+  eq('2.5 kg plate shows as 5.5 lb', U.plateLabel(2.5), '5.5');
+
+  // Switching back must not have mutated anything stored.
+  store.updateProfile({ units: 'kg' });
+  eq('back to kg', U.w(50), '50 kg');
+  eq('plate label back in kg', U.plateLabel(20), '20');
+
+  // progression.js hint strings must follow the display unit via the injected formatter.
+  const { setWeightFormatter, computeNextTarget } = await import(`${APP}/progression.js`);
+  const perfect = [{ date: '2026-08-01', sets: Array(4).fill({ weight: 50, reps: 8, rpe: 8 }) }];
+  eq('hint in kg by default', computeNextTarget(perfect, 'back-squat').note.includes('2.5 kg'), true);
+  setWeightFormatter(U.w);
+  store.updateProfile({ units: 'lb' });
+  const lbNote = computeNextTarget(perfect, 'back-squat').note;
+  ok('hint switches to lb', lbNote.includes('lb'), lbNote);
+  ok('hint no longer says kg', !lbNote.includes(' kg'), lbNote);
+  store.updateProfile({ units: 'kg' });
+  setWeightFormatter((kg) => `${Number.isInteger(kg) ? kg : Number(kg).toFixed(1)} kg`);
+  store.resetAll();
+}
+
 // ============================================================ service worker precache
 section('Service worker — precache list matches the file tree');
 {

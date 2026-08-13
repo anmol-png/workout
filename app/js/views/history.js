@@ -6,6 +6,7 @@ import { getDay, getExercise, prescription } from '../program.js';
 import * as store from '../store.js';
 import { sessionVolume, sessionSetCount, currentStreak, weekStart, weeklySetCounts } from '../stats.js';
 import { openSheet, confirmSheet, toast, escapeHtml } from '../ui.js';
+import * as U from '../units.js';
 
 export function title() { return 'History'; }
 export function subtitle() {
@@ -49,7 +50,7 @@ export function render(root) {
           <span class="hist-day">${day ? day.code : '—'}</span>
           <span class="grow">
             <b class="small">${formatDate(s.date)}</b>
-            <div class="hist-meta">${sessionSetCount(s)} sets · ${Math.round(sessionVolume(s)).toLocaleString()} kg volume</div>
+            <div class="hist-meta">${sessionSetCount(s)} sets · ${U.volume(sessionVolume(s))} volume</div>
           </span>
           ${s.completedAt ? '<span class="pill good">done</span>' : '<span class="pill">partial</span>'}
         </button>`);
@@ -74,7 +75,7 @@ function showSession(id) {
     if (!ex) return '';
     const done = entry.sets.filter((x) => x.done && x.reps > 0);
     if (!done.length) return '';
-    const sets = done.map((x) => `${fmtNum(x.weight ?? 0)}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}${x.isPR ? ' ★' : ''}`).join('  ·  ');
+    const sets = done.map((x) => `${U.num(x.weight ?? 0)}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}${x.isPR ? ' ★' : ''}`).join('  ·  ');
     return `<div style="padding:9px 0;border-top:1px solid var(--line)">
       <div class="row between"><b class="small">${escapeHtml(ex.name)}</b>
         <span class="xs dim">${prescription(ex)}</span></div>
@@ -84,7 +85,7 @@ function showSession(id) {
 
   openSheet(`
     <h2>${day ? day.name : 'Session'} — ${formatDate(s.date)}</h2>
-    <p class="sheet-sub">Week ${s.week} · ${sessionSetCount(s)} sets · ${Math.round(sessionVolume(s)).toLocaleString()} kg
+    <p class="sheet-sub">Week ${s.week} · ${sessionSetCount(s)} sets · ${U.volume(sessionVolume(s))}
       ${log?.sleepHours ? ` · slept ${log.sleepHours} h` : ''}</p>
     ${rows || '<p class="muted small">No completed sets.</p>'}
     ${s.notes ? `<div class="divider"></div><p class="small muted">${escapeHtml(s.notes)}</p>` : ''}

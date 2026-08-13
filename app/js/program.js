@@ -291,7 +291,7 @@ export const EXERCISES = [
     id: 'lat-pulldown', day: 'upper', order: 'B', name: 'Lat Pulldown (wide pronated)',
     muscles: { primary: ['back'], secondary: ['biceps'] },
     sets: 3, repRange: [8, 12], rpe: [8, 8], restSec: 120,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 45,
     cues: [
       'Slight backward lean ~15°, held CONSTANT — don’t row it.',
       'Drive the elbows down. Full stretch at the top.',
@@ -302,7 +302,7 @@ export const EXERCISES = [
     id: 'machine-chest-press', day: 'upper', order: 'C1', supersetGroup: 'C', name: 'Machine Chest Press',
     muscles: { primary: ['chest'], secondary: ['triceps', 'frontDelts'] },
     sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 20,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 35,
     cues: [
       'Stabilized = all the effort goes to the chest, and RPE 9 is safe with no spotter.',
       'Full range, squeeze at peak. Don’t shrug the shoulders forward.',
@@ -313,7 +313,7 @@ export const EXERCISES = [
     id: 'chest-supported-row', day: 'upper', order: 'C2', supersetGroup: 'C', name: 'Chest-Supported Row',
     muscles: { primary: ['back'], secondary: ['rearDelts', 'biceps'] },
     sets: 3, repRange: [10, 12], rpe: [8, 9], restSec: 90,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 35,
     cues: [
       'Chest pad removes the lower back entirely — no spinal fatigue two days before Lower.',
       'Peeling off the pad? Too heavy.',
@@ -350,7 +350,7 @@ export const EXERCISES = [
     muscles: { primary: ['triceps'], secondary: [] },
     // 2 sets — same reasoning as the curl. The dip above is already a primary triceps movement.
     sets: 2, repRange: [10, 15], rpe: [9, 9], restSec: 90,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 15,
     cues: [
       'Long head is the largest of the three — worth hitting twice a week.',
       'Elbows forward and fixed. Deep stretch, full lockout.',

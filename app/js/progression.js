@@ -15,6 +15,19 @@
 
 import { getExercise } from './program.js';
 
+/**
+ * How weights get rendered inside the hint strings below.
+ *
+ * Injected rather than imported so this module stays pure and unit-agnostic — it computes in kg
+ * and knows nothing about the user's display preference. app.js swaps in the units-aware
+ * formatter at boot; the kg default keeps the module testable in isolation.
+ */
+let fmtW = (kg) => `${Number.isInteger(kg) ? kg : Number(kg).toFixed(1)} kg`;
+
+export function setWeightFormatter(fn) {
+  fmtW = fn;
+}
+
 /** Result codes returned as `action`, so the UI can pick wording and colour. */
 export const ACTION = {
   CALIBRATE: 'calibrate',   // no history — Week 1, find your load
@@ -130,7 +143,7 @@ export function computeNextTarget(history, exerciseId) {
       reps: lo,
       lastWeight,
       note: ex.increment
-        ? `You hit ${hi}s last time — up ${fmt(ex.increment)} kg, back to ${lo} reps.`
+        ? `You hit ${hi}s last time — up ${fmtW(ex.increment)}, back to ${lo} reps.`
         : `You hit ${hi}s last time — add load or a notch.`,
     };
   }
@@ -165,7 +178,7 @@ export function computeNextTarget(history, exerciseId) {
     weight: lastWeight,
     reps: lo,
     lastWeight,
-    note: `Repeat ${fmt(lastWeight)} kg until all sets reach ${lo}.`,
+    note: `Repeat ${fmtW(lastWeight)} until all sets reach ${lo}.`,
   };
 }
 
@@ -197,6 +210,6 @@ export function describePerformance(perf) {
   const w = sessionLoad(perf);
   const reps = perf.sets.map((s) => s.reps).join(', ');
   const allSame = perf.sets.every((s) => Number(s.weight) === w);
-  if (allSame) return `${fmt(w)} kg × ${reps}`;
-  return perf.sets.map((s) => `${fmt(Number(s.weight) || 0)}×${s.reps}`).join(', ');
+  if (allSame) return `${fmtW(w)} × ${reps}`;
+  return perf.sets.map((s) => `${fmtW(Number(s.weight) || 0)}×${s.reps}`).join(', ');
 }
