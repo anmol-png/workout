@@ -1,7 +1,7 @@
 # START HERE
 
 Everything else in this repo is the reasoning. **This page is just what to do.**
-Follow these six steps in order. It should take you 30 minutes to set up.
+Follow these seven steps in order. It should take you 30 minutes to set up.
 
 ---
 
@@ -95,7 +95,36 @@ Starbucks brewed coffee is already over your limit on its own.
 
 ---
 
-## STEP 5 — In the gym
+## STEP 5 — Warm up (~6 minutes)
+
+Open the **Warm-up** card at the top of the session in the app. It has two parts.
+
+### Part 1 — General warm-up (~4 min)
+Raise your body temperature and move the joints you're about to load. Roughly:
+3 minutes easy bike, then a few mobility drills specific to the day (the app lists them).
+
+**Do NOT static-stretch before lifting** — holding a stretch for 30–60 s temporarily *reduces*
+how much force you can produce. Move dynamically instead. Save static stretching for after your
+session, or a separate time of day.
+
+### Part 2 — Ramp sets (~2 min)
+These are the "warm-up sets" you read about. Before your **first** exercise only, do 2–4
+progressively heavier sets to rehearse the movement and wake up your nervous system.
+
+Example — if your working weight is 45 kg:
+> empty bar × 10 → 27.5 kg × 5 → **then start your working sets at 45 kg**
+
+**The app calculates these for you** from today's target weight, so they go up as you get stronger.
+
+> ### ⚠️ Ramp sets are NOT working sets
+> **Don't log them. Don't count them. Don't take them anywhere near hard.** Every ramp set should
+> feel easy. Their only job is to prepare you — if they tire you out, they've done the opposite
+> of their job. Only exercise A (and sometimes B) needs them; by the time you reach the
+> accessories you're already warm.
+
+---
+
+## STEP 6 — In the gym
 
 1. Open the app. It shows today's session.
 2. For each exercise it shows **what you did last week** and **what to aim for today**.
@@ -103,20 +132,34 @@ Starbucks brewed coffee is already over your limit on its own.
 4. The rest timer starts automatically. Wait for the buzz, then do your next set.
 5. When you're done, tap **Finish session**.
 
-**RPE just means "how many reps did I have left?"**
-- RPE 7 = could have done 3 more
-- RPE 8 = could have done 2 more
-- RPE 9 = could have done 1 more
-- RPE 10 = couldn't do any more
+### Reps vs RPE — they are different things
 
-Aim for **RPE 8** on most things. Don't go to failure on barbell lifts.
+| | **Reps** | **RPE** |
+|---|---|---|
+| Question it answers | How many did you **do**? | How many did you have **left**? |
+| Who decides | You count them | You judge it |
+| Example | You pressed the bar 8 times → **8** | You could've done 2 more → **8** |
+
+They're easy to mix up because they're often the same number by coincidence. They're not related.
+
+**RPE 10 = 0 reps left (failure) · 9 = 1 left · 8 = 2 left · 7 = 3 left**
+
+So `50 kg × 8 @ RPE 8` means: *I lifted 50 kg for 8 reps, and I could have done about 2 more.*
+
+**Aim for RPE 8 on most things.** Don't go to failure on barbell lifts — machines and isolation
+work are safe to push to RPE 9.
+
+**Why RPE matters:** it's how the app knows whether to add weight. Eight reps that felt easy
+(RPE 7) and eight reps that nearly killed you (RPE 10) look identical if you only log reps —
+but only one of them means you're ready for more weight.
 
 **When to add weight:** you don't decide — the app tells you. When you hit the top of the rep
-range on every set, it says "add 2.5 kg" next time. Until then, same weight, one more rep.
+range on every set *at the right RPE*, it says "add 2.5 kg" next time. Until then, same weight,
+one more rep.
 
 ---
 
-## STEP 6 — Every day (training or not)
+## STEP 7 — Every day (training or not)
 
 1. **5 g creatine** (1 teaspoon) in water or your shake. Any time of day. Rest days too.
 2. **Weigh yourself** first thing in the morning, after the toilet, before eating. Put it in the

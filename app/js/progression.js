@@ -124,9 +124,11 @@ export function computeNextTarget(history, exerciseId) {
       weight: ex.startLoad,
       reps: lo,
       lastWeight: null,
-      note: ex.startLoad == null
-        ? 'Calibration set — find a load that lands at the target RPE.'
-        : 'Starting estimate. Week 1 is calibration — chase the RPE, not the number.',
+      note: ex.unit === 'bodyweight'
+        ? 'Bodyweight to start — leave the weight blank. Add a belt once you hit the top of the range on all sets.'
+        : ex.startLoad == null
+          ? 'Calibration set — find a load that lands at the target RPE.'
+          : 'Starting estimate. Week 1 is calibration — chase the RPE, not the number.',
     };
   }
 
@@ -143,7 +145,9 @@ export function computeNextTarget(history, exerciseId) {
       reps: lo,
       lastWeight,
       note: ex.increment
-        ? `You hit ${hi}s last time — up ${fmtW(ex.increment)}, back to ${lo} reps.`
+        ? (ex.unit === 'bodyweight'
+          ? `You hit ${hi}s last time — add ${fmtW(ex.increment)} on a belt, back to ${lo} reps.`
+          : `You hit ${hi}s last time — up ${fmtW(ex.increment)}, back to ${lo} reps.`)
         : `You hit ${hi}s last time — add load or a notch.`,
     };
   }
@@ -205,11 +209,15 @@ function fmt(n) {
  * Human-readable summary of the last performance, e.g. "60 kg × 8, 8, 7".
  * This is the "beat this" line shown above every exercise.
  */
-export function describePerformance(perf) {
+export function describePerformance(perf, exercise = null) {
   if (!perf || !perf.sets.length) return null;
   const w = sessionLoad(perf);
   const reps = perf.sets.map((s) => s.reps).join(', ');
   const allSame = perf.sets.every((s) => Number(s.weight) === w);
-  if (allSame) return `${fmtW(w)} × ${reps}`;
-  return perf.sets.map((s) => `${fmtW(Number(s.weight) || 0)}×${s.reps}`).join(', ');
+  // A bodyweight lift stores ADDED weight, so 0 means "just bodyweight" — never "0 kg".
+  const label = exercise?.unit === 'bodyweight'
+    ? (kg) => (kg > 0 ? `BW+${fmtW(kg)}` : 'BW')
+    : fmtW;
+  if (allSame) return `${label(w)} × ${reps}`;
+  return perf.sets.map((s) => `${label(Number(s.weight) || 0)}×${s.reps}`).join(', ');
 }

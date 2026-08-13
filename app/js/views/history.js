@@ -75,7 +75,12 @@ function showSession(id) {
     if (!ex) return '';
     const done = entry.sets.filter((x) => x.done && x.reps > 0);
     if (!done.length) return '';
-    const sets = done.map((x) => `${U.num(x.weight ?? 0)}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}${x.isPR ? ' ★' : ''}`).join('  ·  ');
+    const bw = ex.unit === 'bodyweight';
+    const sets = done.map((x) => {
+      const kg = Number(x.weight) || 0;
+      const wLabel = bw ? (kg > 0 ? `BW+${U.num(kg)}` : 'BW') : U.num(kg);
+      return `${wLabel}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}${x.isPR ? ' ★' : ''}`;
+    }).join('  ·  ');
     return `<div style="padding:9px 0;border-top:1px solid var(--line)">
       <div class="row between"><b class="small">${escapeHtml(ex.name)}</b>
         <span class="xs dim">${prescription(ex)}</span></div>

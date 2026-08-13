@@ -17,9 +17,11 @@ import { startTimer } from '../timer.js';
 import { openSheet, toast, escapeHtml } from '../ui.js';
 import { computePlates, plateClass } from '../plates.js';
 import * as U from '../units.js';
+import { WARMUP, rampSets, needsRamp } from '../warmup.js';
 
 let selectedDay = null;
 let autoOn = false;
+let warmupOpen = false;
 
 export function title() {
   const d = getDay(selectedDay || defaultDay());
@@ -86,6 +88,8 @@ export function render(root) {
     </div>`);
   }
 
+  html.push(warmupCard(dayKey, exercises));
+
   // Exercises.
   let lastGroup = null;
   for (const ex of exercises) {
@@ -114,6 +118,61 @@ export function render(root) {
   wire(root, session, exercises);
 }
 
+/**
+ * The warm-up card. Collapsed by default — you only need it open for the first two minutes,
+ * and it would otherwise push the actual logging UI below the fold every session.
+ *
+ * Ramp weights are computed live from today's target, so they track your progression instead of
+ * being a static list that goes stale the moment you add 2.5 kg.
+ */
+function warmupCard(dayKey, exercises) {
+  const items = WARMUP[dayKey] || [];
+  const bar = store.getProfile().barWeightKg;
+
+  const ramps = exercises
+    .filter((ex, i) => needsRamp(ex, i, exercises))
+    .map((ex) => {
+      const history = store.historyFor(ex.id);
+      const t = computeNextTarget(history, ex.id);
+      const sets = rampSets(ex, t.weight, bar);
+      if (!sets.length) return '';
+      const line = sets.map((s) => (s.weight == null
+        ? `<b>${s.reps} ${escapeHtml(s.note)}</b>`
+        : `<b>${U.num(s.weight)}</b>×${s.reps}`)).join(' &nbsp;→&nbsp; ');
+      return `<div style="padding:7px 0;border-top:1px solid var(--line)">
+        <div class="xs muted">${escapeHtml(store.getSubstitution(ex.id) || ex.name)}</div>
+        <div class="small" style="font-variant-numeric:tabular-nums;margin-top:2px">${line}
+          &nbsp;→&nbsp; <span class="muted">work at ${t.weight ? U.w(t.weight) : 'your load'}</span></div>
+      </div>`;
+    }).filter(Boolean).join('');
+
+  return `<div class="card" data-warmup>
+    <button class="row between" data-act="warmup" style="width:100%;text-align:left"
+      aria-expanded="${warmupOpen}">
+      <span>
+        <b class="small">Warm-up</b>
+        <div class="xs muted">~6 min · do this before set 1</div>
+      </span>
+      <span class="pill">${warmupOpen ? 'Hide' : 'Show'}</span>
+    </button>
+    ${warmupOpen ? `
+      <div class="mt">
+        ${items.map(([what, why], i) => `<div style="padding:7px 0;border-top:1px solid var(--line)">
+          <div class="small"><span class="dim">${i + 1}.</span> ${escapeHtml(what)}</div>
+          <div class="xs muted" style="padding-left:16px">${escapeHtml(why)}</div>
+        </div>`).join('')}
+      </div>
+      ${ramps ? `<div class="mt">
+        <div class="xs" style="font-weight:700;letter-spacing:.05em;color:var(--accent);text-transform:uppercase">Ramp sets</div>
+        <div class="xs muted" style="margin:3px 0 4px">Not working sets — don't log these, and stop well short of effort.</div>
+        ${ramps}
+      </div>` : ''}
+      <p class="xs muted mt">No static stretching before lifting — holding a stretch cuts force
+        output. Save it for after.</p>
+    ` : ''}
+  </div>`;
+}
+
 function exerciseCard(ex, session) {
   const sub = store.getSubstitution(ex.id);
   const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
@@ -121,6 +180,9 @@ function exerciseCard(ex, session) {
   const target = computeNextTarget(history, ex.id);
   const entry = session.entries.find((e) => e.exerciseId === ex.id);
   const allDone = entry && entry.sets.length >= ex.sets && entry.sets.slice(0, ex.sets).every((s) => s.done);
+
+  // Bodyweight lifts log ADDED weight, so the column means "+kg" and blank means bodyweight.
+  const isBW = ex.unit === 'bodyweight';
 
   const hintClass = target.action === ACTION.ADD_LOAD ? 'up'
     : target.action === ACTION.STALL ? 'stall' : '';
@@ -134,7 +196,7 @@ function exerciseCard(ex, session) {
       <div class="set ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
         <span class="set-n">${s.isPR ? '★' : i + 1}</span>
         <input type="number" inputmode="decimal" step="${U.step()}" data-f="weight"
-          placeholder="${target.weight != null ? U.num(target.weight) : U.unit()}"
+          placeholder="${isBW ? 'BW' : (target.weight != null ? U.num(target.weight) : U.unit())}"
           value="${s.weight == null ? '' : U.num(s.weight)}" aria-label="Set ${i + 1} weight">
         <input type="number" inputmode="numeric" step="1" data-f="reps"
           placeholder="${target.reps || ex.repRange[0]}"
@@ -163,11 +225,11 @@ function exerciseCard(ex, session) {
       <div class="ex-hint ${hintClass}">
         <span>${hintIcon}</span>
         <span class="grow">${last
-          ? `Last: <b>${escapeHtml(describePerformance(last))}</b> — ${escapeHtml(target.note)}`
+          ? `Last: <b>${escapeHtml(describePerformance(last, ex))}</b> — ${escapeHtml(target.note)}`
           : escapeHtml(target.note)}</span>
       </div>
       <div class="sets">
-        <div class="sets-head"><span></span><span>${U.unit()}</span><span>reps</span><span>rpe</span><span></span></div>
+        <div class="sets-head"><span></span><span>${isBW ? `+${U.unit()}` : U.unit()}</span><span>reps</span><span>rpe</span><span></span></div>
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}
@@ -205,6 +267,10 @@ function wire(root, session, exercises) {
     if (act === 'prefill' && ex) return prefill(ex, session);
     if (act === 'swap' && ex) return showSwap(ex);
     if (act === 'finisher-done' && ex) return markFinisher(ex, session);
+    if (act === 'warmup') {
+      warmupOpen = !warmupOpen;
+      return rerender();
+    }
     if (act === 'checkin') return openCheckin();
     if (act === 'toggle-auto') { autoOn = !autoOn; return rerender(); }
     if (act === 'finish') return finish(session, exercises);
@@ -328,7 +394,8 @@ function prefill(ex, session) {
   }
   store.upsertSession(session);
   rerender();
-  toast(`Filled ${U.w(t.weight)} × ${t.reps}`);
+  const isBW = ex.unit === 'bodyweight';
+  toast(isBW && !t.weight ? `Filled bodyweight × ${t.reps}` : `Filled ${U.w(t.weight)} × ${t.reps}`);
 }
 
 function markFinisher(ex, session) {
