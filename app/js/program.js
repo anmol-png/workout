@@ -62,7 +62,7 @@ export const EXERCISES = [
     id: 'bench-press', day: 'push', order: 'A', name: 'Barbell Bench Press',
     muscles: { primary: ['chest'], secondary: ['triceps', 'frontDelts'] },
     sets: 4, repRange: [5, 8], rpe: [7, 8], restSec: 165,
-    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 45,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 50,
     cues: [
       'Shoulder blades back and DOWN, pinned to the bench.',
       'Bar to lower chest/sternum, elbows ~45–60° from the torso.',
@@ -75,7 +75,7 @@ export const EXERCISES = [
     id: 'incline-db-press', day: 'push', order: 'B', name: 'Incline DB Press (30°)',
     muscles: { primary: ['chest'], secondary: ['frontDelts', 'triceps'] },
     sets: 3, repRange: [8, 12], rpe: [8, 8], restSec: 120,
-    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 16,
+    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 25,
     cues: [
       '30° incline — steeper turns it into a shoulder press.',
       'Control down to a real chest stretch. Don’t clang at the top.',
@@ -86,7 +86,7 @@ export const EXERCISES = [
     id: 'db-shoulder-press', day: 'push', order: 'C', name: 'Seated DB Shoulder Press',
     muscles: { primary: ['frontDelts', 'sideDelts'], secondary: ['triceps'] },
     sets: 3, repRange: [8, 12], rpe: [8, 8], restSec: 90,
-    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 12,
+    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 15,
     cues: [
       'Press slightly in front of the head, never behind.',
       'Lower to ~shoulder height. Ribs down — don’t arch to finish.',
@@ -97,7 +97,7 @@ export const EXERCISES = [
     id: 'cable-lateral-raise', day: 'push', order: 'D1', supersetGroup: 'D', name: 'Cable Lateral Raise',
     muscles: { primary: ['sideDelts'], secondary: [] },
     sets: 3, repRange: [12, 20], rpe: [9, 9], restSec: 20,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 7.5,
     cues: [
       'Lead with the elbow. Raise to shoulder height, no higher.',
       'Cable keeps tension at the bottom where dumbbells have none.',
@@ -109,7 +109,7 @@ export const EXERCISES = [
     id: 'overhead-triceps-ext', day: 'push', order: 'D2', supersetGroup: 'D', name: 'Overhead Rope Triceps Ext',
     muscles: { primary: ['triceps'], secondary: [] },
     sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 85,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 17.5,
     cues: [
       'Overhead = the only position that stretches the long head.',
       'Elbows forward and fixed. Deep stretch, full lockout.',
@@ -120,7 +120,7 @@ export const EXERCISES = [
     id: 'triceps-pushdown', day: 'push', order: 'E', name: 'Cable Triceps Pushdown',
     muscles: { primary: ['triceps'], secondary: [] },
     sets: 2, repRange: [12, 15], rpe: [9, 10], restSec: 60,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 25,
     cues: [
       'Upper arms pinned to your sides. Full lockout.',
       'Zero risk here — take the last set to true failure.',
@@ -145,7 +145,7 @@ export const EXERCISES = [
     id: 'barbell-row', day: 'pull', order: 'B', name: 'Barbell Row',
     muscles: { primary: ['back'], secondary: ['rearDelts', 'biceps'] },
     sets: 3, repRange: [8, 12], rpe: [8, 8], restSec: 120,
-    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 40,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 45,
     cues: [
       'Hinge ~45°, back FLAT, brace hard.',
       'Bar to lower ribs. Elbows back, squeeze the blades.',
@@ -157,7 +157,7 @@ export const EXERCISES = [
     id: 'seated-cable-row', day: 'pull', order: 'C', name: 'Seated Cable Row (neutral)',
     muscles: { primary: ['back'], secondary: ['rearDelts', 'biceps'] },
     sets: 3, repRange: [10, 12], rpe: [8, 9], restSec: 90,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 50,
     cues: [
       'Let the shoulder blades protract fully at the front — real stretch.',
       'Don’t lean back past vertical to finish the rep.',
@@ -168,7 +168,7 @@ export const EXERCISES = [
     id: 'reverse-pec-deck', day: 'pull', order: 'D1', supersetGroup: 'D', name: 'Reverse Pec Deck',
     muscles: { primary: ['rearDelts'], secondary: [] },
     sets: 3, repRange: [15, 20], rpe: [9, 9], restSec: 20,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 20,
     cues: [
       'Pull with the ELBOWS, not the hands. Slight fixed arm bend.',
       'Feel it in your traps? Go lighter.',
@@ -180,7 +180,7 @@ export const EXERCISES = [
     id: 'incline-db-curl', day: 'pull', order: 'D2', supersetGroup: 'D', name: 'Incline DB Curl',
     muscles: { primary: ['biceps'], secondary: [] },
     sets: 3, repRange: [8, 12], rpe: [9, 9], restSec: 85,
-    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 8,
+    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 12,
     cues: [
       'Incline puts the upper arm behind the torso = biceps under stretch.',
       'Elbows stay back. Full extension at the bottom — that’s the point.',
@@ -191,7 +191,7 @@ export const EXERCISES = [
     id: 'hammer-curl', day: 'pull', order: 'E', name: 'Cable Rope Hammer Curl',
     muscles: { primary: ['biceps'], secondary: [] },
     sets: 2, repRange: [12, 15], rpe: [9, 9], restSec: 60,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 22.5,
     cues: [
       'Neutral grip hits the brachialis — sits under the biceps and pushes it up.',
       'Elbows fixed at your sides. No swinging.',
@@ -291,7 +291,7 @@ export const EXERCISES = [
     id: 'lat-pulldown', day: 'upper', order: 'B', name: 'Lat Pulldown (wide pronated)',
     muscles: { primary: ['back'], secondary: ['biceps'] },
     sets: 3, repRange: [8, 12], rpe: [8, 8], restSec: 120,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 45,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 30,
     cues: [
       'Slight backward lean ~15°, held CONSTANT — don’t row it.',
       'Drive the elbows down. Full stretch at the top.',
@@ -302,7 +302,7 @@ export const EXERCISES = [
     id: 'machine-chest-press', day: 'upper', order: 'C1', supersetGroup: 'C', name: 'Machine Chest Press',
     muscles: { primary: ['chest'], secondary: ['triceps', 'frontDelts'] },
     sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 20,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 35,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 45,
     cues: [
       'Stabilized = all the effort goes to the chest, and RPE 9 is safe with no spotter.',
       'Full range, squeeze at peak. Don’t shrug the shoulders forward.',
@@ -313,7 +313,7 @@ export const EXERCISES = [
     id: 'chest-supported-row', day: 'upper', order: 'C2', supersetGroup: 'C', name: 'Chest-Supported Row',
     muscles: { primary: ['back'], secondary: ['rearDelts', 'biceps'] },
     sets: 3, repRange: [10, 12], rpe: [8, 9], restSec: 90,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 35,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 36,
     cues: [
       'Chest pad removes the lower back entirely — no spinal fatigue two days before Lower.',
       'Peeling off the pad? Too heavy.',
@@ -324,7 +324,7 @@ export const EXERCISES = [
     id: 'db-lateral-raise', day: 'upper', order: 'D1', supersetGroup: 'D', name: 'DB Lateral Raise',
     muscles: { primary: ['sideDelts'], secondary: [] },
     sets: 3, repRange: [12, 20], rpe: [9, 9], restSec: 15,
-    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 6,
+    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 9,
     cues: [
       'Lead with the elbow, stop at shoulder height. Slow negative.',
       'Go lighter than your ego wants — most over-loaded exercise in any gym.',
@@ -338,7 +338,7 @@ export const EXERCISES = [
     // spillover from every row and pulldown. Arms don't need a third set here more than legs
     // need the recovery.
     sets: 2, repRange: [10, 12], rpe: [9, 9], restSec: 15,
-    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 20,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 27.5,
     cues: [
       'Angled grip spares the wrists and lets you load heavier than DB curls.',
       'Elbows pinned. No leaning back. Full extension.',
@@ -350,7 +350,7 @@ export const EXERCISES = [
     muscles: { primary: ['triceps'], secondary: [] },
     // 2 sets — same reasoning as the curl. The dip above is already a primary triceps movement.
     sets: 2, repRange: [10, 15], rpe: [9, 9], restSec: 90,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 15,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 17.5,
     cues: [
       'Long head is the largest of the three — worth hitting twice a week.',
       'Elbows forward and fixed. Deep stretch, full lockout.',
@@ -459,7 +459,7 @@ export const EXERCISES = [
 const SUBSTITUTE_META = {
   // → barbell
   'Incline Barbell Press': { unit: 'barbell', startLoad: 35 },
-  'Incline DB Press': { unit: 'dumbbell', startLoad: 20 },
+  'Incline DB Press': { unit: 'dumbbell', startLoad: 29.5 },
   'Standing Barbell OHP': { unit: 'barbell', startLoad: 25 },
   'EZ-Bar Skullcrusher': { unit: 'barbell', startLoad: 15 },
   'Front Squat': { unit: 'barbell', startLoad: 35 },
@@ -497,7 +497,7 @@ const SUBSTITUTE_META = {
   'Chest-Supported Row': { unit: 'machine', startLoad: 35 },
   'Chest-Supported Machine Row': { unit: 'machine', startLoad: 35 },
   'Machine Row': { unit: 'machine', startLoad: 35 },
-  'Pec Deck Fly': { unit: 'machine', startLoad: 25 },
+  'Pec Deck Fly': { unit: 'machine', startLoad: 57.5 },
   'Cable Fly': { unit: 'machine', startLoad: 12 },
   'Face Pull': { unit: 'machine', startLoad: 15 },
   'Hack Squat': { unit: 'machine', startLoad: 60 },
