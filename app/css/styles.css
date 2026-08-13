@@ -300,7 +300,26 @@ button { cursor: pointer; border: none; background: none; }
   animation: sheet-in .22s cubic-bezier(.2,.8,.3,1);
 }
 @keyframes sheet-in { from { transform: translateY(100%); } }
-.sheet-grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 14px; }
+/* Sheet chrome: a tappable grab handle plus an explicit close. The handle is also the drag
+   target for swipe-to-dismiss — it has to look and behave like something you can grab. */
+.sheet-chrome { position: relative; height: 34px; touch-action: none; }
+.sheet-grab {
+  position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
+  width: 52px; height: 20px; padding: 0; background: none; border: none;
+  cursor: grab;
+}
+.sheet-grab::before {
+  content: ''; position: absolute; left: 8px; right: 8px; top: 8px;
+  height: 4px; border-radius: 2px; background: var(--line);
+}
+.sheet-grab:active { cursor: grabbing; }
+.sheet-close {
+  position: absolute; right: 0; top: 0;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface-2); color: var(--muted);
+  font-size: 20px; line-height: 1;
+}
 .sheet h2 { font-size: 19px; margin-bottom: 3px; }
 .sheet-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
 .cue-list { list-style: none; padding: 0; margin: 0; }

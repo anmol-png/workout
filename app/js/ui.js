@@ -27,19 +27,71 @@ export function initUI() {
  */
 export function openSheet(html, onMount) {
   lastFocus = document.activeElement;
-  sheetEl.innerHTML = `<div class="sheet-grab"></div><div class="sheet">${html}</div>`;
+  // The grab handle used to be decoration only, which promised a swipe gesture that did nothing
+  // and left no visible way out. Now: an explicit ×, a tappable handle, and drag-to-dismiss.
+  sheetEl.innerHTML = `
+    <div class="sheet-chrome">
+      <button class="sheet-grab" aria-label="Close"></button>
+      <button class="sheet-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheet">${html}</div>`;
   sheetEl.hidden = false;
+  sheetEl.style.transform = '';
   backdropEl.hidden = false;
   document.body.style.overflow = 'hidden';
+
+  sheetEl.querySelector('.sheet-close').addEventListener('click', closeSheet);
+  sheetEl.querySelector('.sheet-grab').addEventListener('click', closeSheet);
+  attachDragToDismiss(sheetEl.querySelector('.sheet-chrome'));
+
   if (onMount) onMount(sheetEl);
   // Move focus in so screen readers and keyboards land inside the dialog, not behind it.
-  (sheetEl.querySelector('input, button') || sheetEl).focus?.();
+  (sheetEl.querySelector('.sheet input, .sheet button') || sheetEl).focus?.();
+}
+
+/**
+ * Drag down from the handle to dismiss.
+ *
+ * Bound to the chrome strip only, never the body — the sheet scrolls, and a drag handler on the
+ * whole surface would fight with scrolling on every session that's taller than the screen.
+ */
+function attachDragToDismiss(handle) {
+  let startY = null;
+
+  const onMove = (e) => {
+    if (startY === null) return;
+    const dy = Math.max(0, e.clientY - startY);
+    sheetEl.style.transition = 'none';
+    sheetEl.style.transform = `translateY(${dy}px)`;
+    backdropEl.style.opacity = String(Math.max(0.2, 1 - dy / 400));
+  };
+
+  const onUp = (e) => {
+    if (startY === null) return;
+    const dy = Math.max(0, e.clientY - startY);
+    startY = null;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    sheetEl.style.transition = 'transform .18s ease';
+    backdropEl.style.opacity = '';
+    if (dy > 90) closeSheet();
+    else sheetEl.style.transform = '';
+  };
+
+  handle.addEventListener('pointerdown', (e) => {
+    startY = e.clientY;
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
 }
 
 export function closeSheet() {
   sheetEl.hidden = true;
-  backdropEl.hidden = true;
   sheetEl.innerHTML = '';
+  sheetEl.style.transform = '';
+  sheetEl.style.transition = '';
+  backdropEl.hidden = true;
+  backdropEl.style.opacity = '';
   document.body.style.overflow = '';
   lastFocus?.focus?.();
 }
