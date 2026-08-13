@@ -96,7 +96,7 @@ export function weeklyVolume(weekStartISO) {
     for (const entry of s.entries) {
       const ex = getExercise(entry.exerciseId);
       if (!ex || ex.isFinisher) continue;
-      const done = entry.sets.filter((set) => set.done && set.reps > 0).length;
+      const done = entry.sets.filter((set) => set.reps > 0).length;
       if (!done) continue;
       for (const m of ex.muscles.primary) totals[m] += done;
       for (const m of ex.muscles.secondary) totals[m] += done * 0.5;
@@ -134,7 +134,7 @@ export function weeklySetCounts(weekStartISO) {
     for (const entry of s.entries) {
       const ex = getExercise(entry.exerciseId);
       if (!ex || ex.isFinisher) continue;
-      const done = entry.sets.filter((set) => set.done && set.reps > 0).length;
+      const done = entry.sets.filter((set) => set.reps > 0).length;
       total += done;
       if (ex.muscles.primary.some((m) => LEG.has(m))) legs += done;
     }
@@ -220,13 +220,13 @@ export function bodyweightTrend() {
 
 export function sessionVolume(session) {
   return session.entries.reduce(
-    (n, e) => n + e.sets.filter((s) => s.done).reduce((m, s) => m + setVolume(s), 0),
+    (n, e) => n + e.sets.filter((s) => s.reps > 0).reduce((m, s) => m + setVolume(s), 0),
     0,
   );
 }
 
 export function sessionSetCount(session) {
-  return session.entries.reduce((n, e) => n + e.sets.filter((s) => s.done && s.reps > 0).length, 0);
+  return session.entries.reduce((n, e) => n + e.sets.filter((s) => s.reps > 0).length, 0);
 }
 
 /** Consecutive weeks (Monday-anchored) with at least one logged session, counting back from now. */

@@ -447,3 +447,6 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
 /* A <button> may not contain block elements — the inner spans are display:block instead. */
 .wu-toggle { width: 100%; text-align: left; }
+
+/* A set with reps typed is already logged — the ✓ only starts the rest timer. */
+.set.logged input { border-color: color-mix(in srgb, var(--good) 22%, var(--line)); }

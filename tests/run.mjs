@@ -247,7 +247,8 @@ section('Stats — e1RM, PRs, volume');
       ] },
     ], notes: '',
   });
-  eq('only completed sets count', weeklyVolume('2026-08-10').chest, 1);
+  // Both sets count: a set with reps was performed, tick or no tick. Only blank rows are skipped.
+  eq('unticked sets still count', weeklyVolume('2026-08-10').chest, 2);
 
   // A session outside the week window must not leak in.
   eq('previous week is empty', weeklyVolume('2026-08-03').quads, 0);
@@ -258,7 +259,8 @@ section('Store — persistence and backup');
 {
   store.resetAll();
   store.updateProfile({ heightCm: 175, barWeightKg: 20 });
-  store.upsertSession({ id: 's1', date: '2026-08-12', dayKey: 'legs', week: 1, entries: [], notes: 'hi' });
+  store.upsertSession({ id: 's1', date: '2026-08-12', dayKey: 'legs', week: 1, notes: 'hi', entries: [
+    { exerciseId: 'back-squat', sets: [{ weight: 50, reps: 6, rpe: 8, done: true }] }] });
   store.saveDailyLog('2026-08-12', { bodyweightKg: 82.4, sleepHours: 6.5, readiness: 3 });
 
   const json = store.exportJSON();
@@ -514,6 +516,59 @@ section('Substitutions — swapping changes the equipment, not just the name');
     }
   }
   console.log(`  ${checked} substitutes across ${EXERCISES.length} exercises all resolve`);
+}
+
+// ============================================================ session integrity
+section('Sessions — set counting and duplicate repair');
+{
+  store.resetAll();
+  const S = statsMod;
+
+  // A set counts when it has REPS. The tick only starts the rest timer; gating on it silently
+  // discarded 16 of 19 real sets in the field.
+  store.upsertSession({ id: 'x', date: '2026-08-13', dayKey: 'upper', week: 1, notes: '', entries: [
+    { exerciseId: 'lat-pulldown', sets: [
+      { weight: 25, reps: 12, rpe: null, done: true },
+      { weight: 30, reps: 8, rpe: null, done: false },
+      { weight: 25, reps: 8, rpe: null, done: false },
+      { weight: null, reps: null, rpe: null, done: false },
+    ] },
+  ] });
+  eq('unticked sets still count', S.sessionSetCount(store.getSession('x')), 3);
+  eq('blank rows do not count', S.weeklySetCounts(S.weekStart('2026-08-13')).total, 3);
+  eq('volume includes unticked sets', Math.round(S.sessionVolume(store.getSession('x'))), 25 * 12 + 30 * 8 + 25 * 8);
+  eq('history includes unticked sets', store.historyFor('lat-pulldown')[0].sets.length, 3);
+
+  // Duplicate repair: one workout split across records, some filed under the wrong day.
+  store.resetAll();
+  const many = (id, n) => ({ exerciseId: id, sets: Array.from({ length: n }, () => ({ weight: 30, reps: 10, rpe: null, done: false })) });
+  store.importJSON(JSON.stringify({
+    schemaVersion: 1, profile: {}, dailyLogs: {}, substitutions: {}, exerciseUnits: {}, meta: {},
+    sessions: [
+      { id: 'a', date: '2026-08-13', dayKey: 'push', week: 1, notes: 'the real one', entries: [
+        many('lat-pulldown', 3), many('weighted-dip', 3), many('ez-bar-curl', 2)] },
+      { id: 'b', date: '2026-08-13', dayKey: 'upper', week: 1, notes: '', entries: [
+        { exerciseId: 'lat-pulldown', sets: [{ weight: null, reps: null, done: false }] }] },
+      { id: 'c', date: '2026-08-13', dayKey: 'push', week: 1, notes: '', entries: [many('lat-pulldown', 3)] },
+      { id: 'd', date: '2026-08-14', dayKey: 'legs', week: 1, notes: '', entries: [many('back-squat', 4)] },
+    ],
+  }));
+
+  const sessions = store.getSessions();
+  eq('4 records collapse to 2 real workouts', sessions.length, 2);
+  const aug13 = sessions.find((x) => x.date === '2026-08-13');
+  eq('dayKey inferred from contents, not the label', aug13.dayKey, 'upper');
+  eq('deterministic id', aug13.id, '2026-08-13:upper');
+  eq('all 8 sets survive the merge', S.sessionSetCount(aug13), 8);
+  eq('richest copy of each exercise kept', aug13.entries.length, 3);
+  eq('notes preserved', aug13.notes, 'the real one');
+  eq('a different day is left alone', sessions.find((x) => x.date === '2026-08-14').dayKey, 'legs');
+
+  const once = store.exportJSON();
+  store.importJSON(once);
+  eq('migration is idempotent', store.getSessions().length, 2);
+
+  store.resetAll();
 }
 
 // ============================================================ service worker precache

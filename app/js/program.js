@@ -285,7 +285,7 @@ export const EXERCISES = [
       'Elbows track back, not flared. Stop at upper-arm-parallel.',
       'Shoulders unhappy? Swap to Incline Barbell Press 3×6–10.',
     ],
-    substitutes: ['Incline Barbell Press', 'Assisted Dip'],
+    substitutes: ['Incline Barbell Press', 'Incline DB Press', 'Assisted Dip'],
   },
   {
     id: 'lat-pulldown', day: 'upper', order: 'B', name: 'Lat Pulldown (wide pronated)',
@@ -459,6 +459,7 @@ export const EXERCISES = [
 const SUBSTITUTE_META = {
   // → barbell
   'Incline Barbell Press': { unit: 'barbell', startLoad: 35 },
+  'Incline DB Press': { unit: 'dumbbell', startLoad: 20 },
   'Standing Barbell OHP': { unit: 'barbell', startLoad: 25 },
   'EZ-Bar Skullcrusher': { unit: 'barbell', startLoad: 15 },
   'Front Squat': { unit: 'barbell', startLoad: 35 },

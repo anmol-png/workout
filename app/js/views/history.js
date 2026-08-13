@@ -86,7 +86,7 @@ function sessionText(s) {
     const base = getExercise(entry.exerciseId);
     if (!base) continue;
     const ex = resolveExercise(base, store.getSubstitution(base.id));
-    const done = entry.sets.filter((x) => x.done && x.reps > 0);
+    const done = entry.sets.filter((x) => x.reps > 0);
     if (!done.length) continue;
     const bw = ex.unit === 'bodyweight';
     const sets = done.map((x) => {

@@ -199,7 +199,7 @@ function exerciseCard(baseEx, session) {
   for (let i = 0; i < ex.sets; i++) {
     const s = (entry?.sets || [])[i] || {};
     rows.push(`
-      <div class="set ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
+      <div class="set ${s.reps > 0 ? 'logged' : ''} ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
         <span class="set-n">${s.isPR ? '★' : i + 1}</span>
         <input type="number" inputmode="decimal" step="${U.step(ex.id)}" data-f="weight"
           placeholder="${isBW ? 'BW' : (target.weight != null ? U.snapNum(target.weight, ex) : U.unitFor(ex.id))}"
@@ -298,7 +298,10 @@ function ensureSession(dayKey, iso) {
   const existing = store.getSessions().find((s) => s.date === iso && s.dayKey === dayKey);
   if (existing) return existing;
   return {
-    id: store.newId(),
+    // DETERMINISTIC id. Previously this was a random UUID minted on every render, so until the
+    // first set was saved each re-render produced a different session object — and a single
+    // workout could end up split across several records. date+dayKey makes that impossible.
+    id: `${iso}:${dayKey}`,
     date: iso,
     dayKey,
     week: store.currentWeek(iso),
@@ -421,7 +424,7 @@ function countDone(session) {
   return session.entries.reduce((n, e) => {
     const ex = getExercise(e.exerciseId);
     if (ex?.isFinisher) return n;
-    return n + e.sets.filter((s) => s.done).length;
+    return n + e.sets.filter((s) => s.reps > 0).length;
   }, 0);
 }
 

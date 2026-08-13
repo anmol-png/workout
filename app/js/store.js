@@ -7,6 +7,8 @@
  * IndexedDB is a change inside this file only; nothing else touches localStorage directly.
  */
 
+import { DAYS, exercisesForDay } from './program.js';
+
 const KEY = 'workout.v1';
 const SCHEMA_VERSION = 1;
 
@@ -84,10 +86,89 @@ function migrate(data) {
     dailyLogs: data.dailyLogs || {},
     substitutions: data.substitutions || {},
     exerciseUnits: data.exerciseUnits || {},
-    sessions: Array.isArray(data.sessions) ? data.sessions : [],
+    sessions: dedupeSessions(Array.isArray(data.sessions) ? data.sessions : []),
   };
   merged.schemaVersion = SCHEMA_VERSION;
   return merged;
+}
+
+/**
+ * Merge sessions that describe the same workout, and re-file them under the right day.
+ *
+ * Older builds minted a random session id on every render, so before the first set was saved a
+ * single workout could be split across several records — and because the day picker and the
+ * captured session object could disagree, some records were filed under the wrong dayKey.
+ *
+ * Rule: two sessions on the same date that share ANY exercise are the same workout. Merge them,
+ * keeping the richest version of each exercise, then infer dayKey from what was actually logged
+ * rather than trusting the stored label.
+ */
+function dedupeSessions(list) {
+  const byDate = new Map();
+  for (const s of list) {
+    if (!byDate.has(s.date)) byDate.set(s.date, []);
+    byDate.get(s.date).push(s);
+  }
+
+  const out = [];
+  for (const [, sameDay] of byDate) {
+    const groups = [];
+    for (const s of sameDay) {
+      const ids = new Set(s.entries.map((e) => e.exerciseId));
+      // Any overlap with an existing group means it's the same workout.
+      const hit = groups.find((g) => [...ids].some((id) => g.ids.has(id)));
+      if (hit) {
+        hit.members.push(s);
+        for (const id of ids) hit.ids.add(id);
+      } else {
+        groups.push({ ids, members: [s] });
+      }
+    }
+
+    for (const g of groups) {
+      const merged = mergeSessions(g.members);
+      if (merged.entries.length) out.push(merged);
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function loggedCount(sets) {
+  return (sets || []).filter((x) => (x.reps || 0) > 0).length;
+}
+
+function mergeSessions(members) {
+  const base = { ...members[0] };
+  const entries = new Map();
+
+  for (const s of members) {
+    for (const e of s.entries) {
+      const prev = entries.get(e.exerciseId);
+      // Keep whichever copy of this exercise actually has data.
+      if (!prev || loggedCount(e.sets) > loggedCount(prev.sets)) entries.set(e.exerciseId, e);
+    }
+  }
+
+  base.entries = [...entries.values()];
+  base.notes = members.map((s) => s.notes).filter(Boolean).sort((a, b) => b.length - a.length)[0] || '';
+  base.completedAt = members.map((s) => s.completedAt).find(Boolean) || base.completedAt;
+  base.dayKey = inferDayKey(base.entries, base.dayKey);
+  base.id = `${base.date}:${base.dayKey}`;
+  return base;
+}
+
+/** Which session do these exercises actually belong to? Trust the contents over the label. */
+function inferDayKey(entries, fallback) {
+  const ids = entries.map((e) => e.exerciseId);
+  if (!ids.length) return fallback;
+  let best = fallback;
+  let bestScore = 0;
+  for (const day of DAYS) {
+    const dayIds = new Set(exercisesForDay(day.key).map((e) => e.id));
+    const score = ids.filter((id) => dayIds.has(id)).length;
+    if (score > bestScore) { bestScore = score; best = day.key; }
+  }
+  return best;
 }
 
 let saveTimer = null;
@@ -148,7 +229,10 @@ export function historyFor(exerciseId) {
   for (const s of [...state.sessions].sort((a, b) => a.date.localeCompare(b.date))) {
     const entry = s.entries.find((e) => e.exerciseId === exerciseId);
     if (!entry) continue;
-    const done = entry.sets.filter((set) => set.done && set.reps > 0);
+    // A set counts as performed when it has reps. The ✓ tick is a convenience that starts
+    // the rest timer — it was never meant to gate whether the set happened, and treating it
+    // that way silently discarded 16 of 19 logged sets.
+    const done = entry.sets.filter((set) => set.reps > 0);
     if (done.length) out.push({ sessionId: s.id, date: s.date, week: s.week, sets: done });
   }
   return out;
