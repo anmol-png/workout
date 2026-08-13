@@ -2,7 +2,7 @@
  * views/history.js — every logged session, newest first, with a per-session breakdown.
  */
 
-import { getDay, getExercise, prescription } from '../program.js';
+import { getDay, getExercise, prescription, resolveExercise } from '../program.js';
 import * as store from '../store.js';
 import { sessionVolume, sessionSetCount, currentStreak, weekStart, weeklySetCounts } from '../stats.js';
 import { openSheet, confirmSheet, toast, escapeHtml } from '../ui.js';
@@ -64,6 +64,60 @@ export function render(root) {
   });
 }
 
+/**
+ * A plain-text summary of one session, for pasting anywhere.
+ *
+ * Exists because the app is deliberately offline-only — there's no server to share a link to,
+ * so the export path has to be text you can paste into a message.
+ */
+function sessionText(s) {
+  const day = getDay(s.dayKey);
+  const log = store.getDailyLog(s.date);
+  const lines = [];
+
+  lines.push(`${day ? day.name : 'Session'} — ${formatDate(s.date)} (Week ${s.week})`);
+  const meta = [`${sessionSetCount(s)} sets`, `${U.volume(sessionVolume(s))} volume`];
+  if (log?.bodyweightKg) meta.push(`BW ${U.bw(log.bodyweightKg)}`);
+  if (log?.sleepHours) meta.push(`slept ${log.sleepHours}h`);
+  lines.push(meta.join(' · '));
+  lines.push('');
+
+  for (const entry of s.entries) {
+    const base = getExercise(entry.exerciseId);
+    if (!base) continue;
+    const ex = resolveExercise(base, store.getSubstitution(base.id));
+    const done = entry.sets.filter((x) => x.done && x.reps > 0);
+    if (!done.length) continue;
+    const bw = ex.unit === 'bodyweight';
+    const sets = done.map((x) => {
+      const kg = Number(x.weight) || 0;
+      const wLabel = bw ? (kg > 0 ? `BW+${U.num(kg, ex.id)}` : 'BW') : `${U.num(kg, ex.id)}${U.unitFor(ex.id)}`;
+      return `${wLabel}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}${x.isPR ? ' PR' : ''}`;
+    }).join(', ');
+    lines.push(`${ex.order}. ${ex.name} — ${sets}`);
+  }
+
+  if (s.notes) { lines.push(''); lines.push(`Notes: ${s.notes}`); }
+  return lines.join('\n');
+}
+
+/** Clipboard with a fallback for browsers that block the async API. */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }
+}
+
 function showSession(id) {
   const s = store.getSession(id);
   if (!s) return;
@@ -95,8 +149,17 @@ function showSession(id) {
     ${rows || '<p class="muted small">No completed sets.</p>'}
     ${s.notes ? `<div class="divider"></div><p class="small muted">${escapeHtml(s.notes)}</p>` : ''}
     <div class="divider"></div>
+    <button class="btn full primary mb" data-copy>Copy summary</button>
+    ${navigator.share ? '<button class="btn full ghost mb" data-share>Share…</button>' : ''}
     <button class="btn full danger" data-del>Delete this session</button>
   `, (sheet) => {
+    sheet.querySelector('[data-copy]').addEventListener('click', async () => {
+      const ok = await copyText(sessionText(s));
+      toast(ok ? 'Copied — paste it anywhere' : 'Could not copy');
+    });
+    sheet.querySelector('[data-share]')?.addEventListener('click', () => {
+      navigator.share({ text: sessionText(s) }).catch(() => {});
+    });
     sheet.querySelector('[data-del]').addEventListener('click', () => {
       window.__closeSheet();
       confirmSheet('Delete session?', 'This removes every set logged that day. It can’t be undone.',
