@@ -154,6 +154,40 @@ get into bed. That's your answer.
 5. **If sleep is still disturbed at 1pm/200 mg, you're a slow metaboliser.** Drop to 100–150 mg,
    or move to 11am. Test it for a week and read the sleep log in the app.
 
+### How much caffeine is actually in a coffee?
+
+"One coffee" spans **50–300+ mg** — a sixfold range — which is why the cap above is in milligrams
+rather than cups.
+
+| What you're drinking | Caffeine |
+|---|---|
+| Instant, 1 **level** tsp (~2 g) | **60–80 mg** |
+| Instant, 1 **heaped** tsp | **90–120 mg** |
+| Espresso, single shot | **60–80 mg** |
+| Espresso, **double** shot | **120–160 mg** |
+| Café cappuccino / latte *(usually a double)* | **120–160 mg** |
+| South Indian filter coffee, 1 tumbler | **50–100 mg** |
+| Home French press / drip, 240 ml | **95–165 mg** |
+| Starbucks grande brewed (473 ml) | **~310 mg** |
+| Cold brew, 340 ml | **150–250 mg** |
+| Black tea, 240 ml | 40–50 mg |
+| Masala chai | 25–50 mg |
+| Green tea | 25–35 mg |
+| Red Bull 250 ml / Monster 500 ml | 80 / 160 mg |
+| *A pre-workout scoop, for comparison* | *150–350 mg* |
+
+> **Indian instant coffee is mostly robusta**, which carries roughly **twice** the caffeine of
+> arabica (~2.2–2.7 % vs 1.2–1.5 % by weight). Assume Nescafé and Bru sit at the **high** end of
+> the ranges above. Traditional filter coffee cuts the other way — the chicory in the blend has
+> no caffeine and dilutes the dose.
+
+**Rule of thumb: count shots and teaspoons, not cups.** ~70 mg per espresso shot, ~80 mg per level
+teaspoon of instant. That figure is stable; "a cup" isn't.
+
+**Your 200 mg spends as:** two heaped tsp of instant · *or* one café latte plus a tea later ·
+*or* two filter coffees. **A single Starbucks grande brewed coffee (~310 mg) is over the cap on its
+own** — more caffeine than the pre-workout you gave up, in the drink most people assume is harmless.
+
 > **L-theanine (200 mg)** taken with caffeine smooths the jittery edge and is worth adding if you
 > get anxious on it. Be clear on what it does *not* do: it has **no effect on caffeine's half-life**,
 > so it does not help your sleep at all. Timing is the only thing that fixes that.
