@@ -96,11 +96,20 @@ export function closeSheet() {
   lastFocus?.focus?.();
 }
 
-export function toast(message, variant = '') {
+export function toast(message, variant = '', onTap = null) {
   clearTimeout(toastTimer);
   toastEl.textContent = message;
   toastEl.className = variant;
   toastEl.hidden = false;
+
+  // An actionable toast stays until it's dealt with. A 2-second window is fine for "Copied", but
+  // not for something the user is meant to tap — that just teaches them to ignore toasts.
+  toastEl.onclick = null;
+  toastEl.style.cursor = onTap ? 'pointer' : '';
+  if (onTap) {
+    toastEl.onclick = () => { toastEl.hidden = true; onTap(); };
+    return;
+  }
   toastTimer = setTimeout(() => { toastEl.hidden = true; }, variant === 'pr' ? 3200 : 1900);
 }
 

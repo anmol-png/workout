@@ -94,9 +94,17 @@ async function registerServiceWorker() {
       const sw = reg.installing;
       sw?.addEventListener('statechange', () => {
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-          toast('Update ready — reopen the app to apply');
+          // Tappable rather than auto-reloading: a reload mid-set is jarring, and every keystroke
+          // is already persisted, so there is nothing to rescue by forcing it.
+          toast('New version ready — tap to update', '', () => location.reload());
         }
       });
+    });
+
+    // A phone keeps the app alive for days. Without this, an update is only ever noticed on a
+    // cold start — check whenever it comes back to the foreground.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) reg.update().catch(() => {});
     });
   } catch (err) {
     console.warn('Service worker registration failed:', err);

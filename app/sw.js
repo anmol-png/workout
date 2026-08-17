@@ -5,10 +5,14 @@
  * Cache-first is right here because the shell is the app — there is no server data to be stale
  * about. Your training data lives in localStorage and never touches the network at all.
  *
- * Bump CACHE when any shell file changes, or browsers will serve the old one indefinitely.
+ * BUMP `CACHE` ON EVERY DEPLOY. This is not optional bookkeeping — it is the only thing that
+ * ships new code. Browsers re-run `install` when the BYTES of this file change, and `install` is
+ * what re-fetches the shell with `cache: 'reload'`. Leave the version alone and install never
+ * re-runs; the only refresh path left is the background revalidate in `fetch`, which updates the
+ * cache AFTER serving the old copy — so every user sits exactly one reload behind forever.
  */
 
-const CACHE = 'workout-v1';
+const CACHE = 'workout-v3';
 
 // Relative paths: this is served from a GitHub Pages subpath (/workout/app/), not the domain
 // root. Leading slashes would resolve to the wrong origin path and every precache would 404.

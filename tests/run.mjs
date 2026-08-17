@@ -624,6 +624,50 @@ section('Per-set projection — reps fall as fatigue builds');
   eq('varying-weight history is not used as a curve', projectSets(mixed, lateral, computeNextTarget(mixed, lateral))[0].note, 'estimated');
 
   eq('describeProjection formats', describeProjection([{ reps: 8 }, { reps: 7 }, { reps: 6 }]), '8 / 7 / 6');
+
+  // A progression target is a FLOOR ("get 5 on every set"), so pinning the curve's AVERAGE there
+  // pushed half the sets below the rep range, where they clamped to `lo` and came out identical.
+  // This is the common case — every lift sits at the bottom of its range after a load increase.
+  const atFloor = projectSets([], squat, { action: 'repeat', weight: 60, reps: 5 });
+  ok('a bottom-of-range target still varies per set',
+    new Set(atFloor.map((x) => x.reps)).size > 1, describeProjection(atFloor));
+  ok('no set is projected below the target floor',
+    atFloor.every((x) => x.reps >= 5), describeProjection(atFloor));
+}
+
+// ============================================================ ramping
+section('Ramp sets are not working sets');
+{
+  const bench = getExercise('bench-press');   // 4×5–8 @ RPE 7–8
+
+  // A real logged session: ramped 55 → 60, then two working sets at 70.
+  const ramped = [{ sets: [
+    { weight: 55, reps: 8, rpe: 8 }, { weight: 60, reps: 8, rpe: 8 },
+    { weight: 70, reps: 6, rpe: 8 }, { weight: 70, reps: 6, rpe: 10 },
+  ] }];
+  const t = computeNextTarget(ramped, bench);
+
+  eq('working load is the modal weight, not the lightest', t.weight, 70);
+  // The old bug: 8 reps at 55 kg became the number to beat at 70 kg, demanding a 2-rep jump.
+  eq('target builds on the WORST working set, not the best', t.reps, 7);
+  ok('says which sets were treated as warm-ups', /2 of 4 sets/.test(t.note), t.note);
+
+  // A failed jump that was abandoned must not become the prescribed load.
+  const bailed = [{ sets: [
+    { weight: 27.2, reps: 11, rpe: 8 }, { weight: 31.8, reps: 10, rpe: 10 }, { weight: 27.2, reps: 10, rpe: 10 },
+  ] }];
+  eq('a bailed-out jump is not prescribed', computeNextTarget(bailed, getExercise('incline-db-press')).weight, 27.2);
+
+  // An increment must be earned on full working sets — 2 of 4 can never qualify.
+  const twoGood = [{ sets: [
+    { weight: 50, reps: 6, rpe: 7 }, { weight: 60, reps: 6, rpe: 7 },
+    { weight: 70, reps: 8, rpe: 7 }, { weight: 70, reps: 8, rpe: 7 },
+  ] }];
+  eq('2 of 4 top-range sets does not earn the load', computeNextTarget(twoGood, bench).action, 'addReps');
+
+  // …but four flat sets at the top of the range still do.
+  const fourGood = [{ sets: Array.from({ length: 4 }, () => ({ weight: 70, reps: 8, rpe: 7 })) }];
+  eq('four flat top-range sets earn the load', computeNextTarget(fourGood, bench).action, 'addLoad');
 }
 
 // ============================================================ personal bests

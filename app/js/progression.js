@@ -82,6 +82,24 @@ function sessionLoad(perf) {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
 }
 
+/**
+ * The WORKING sets of a session — the ones performed at its working load.
+ *
+ * Real sessions aren't flat. You ramp into a lift (55, 60, then 70×2), or you try a jump, find
+ * it too heavy and drop back down. Judging progression across all of those compares rep counts
+ * taken at different loads, which is meaningless: 8 reps at 55 kg says nothing about whether
+ * you're ready to add reps at 70 kg. Worse, it flatters you — the light ramp set posts the
+ * highest rep count in the session and becomes the number the next target is built on.
+ *
+ * The modal weight is the right anchor rather than the heaviest. It reads a ramp (55/60/70/70 →
+ * 70) and a failed jump (60/70/60 → 60) correctly, where "heaviest" gets the second one backwards
+ * and would prescribe the load you just bailed out of.
+ */
+function workingSets(perf) {
+  const load = sessionLoad(perf);
+  return perf.sets.filter((s) => (Number(s.weight) || 0) === load && (Number(s.reps) || 0) > 0);
+}
+
 /** Total reps completed in a session — the tiebreaker for "did anything improve?". */
 function sessionReps(perf) {
   return perf.sets.reduce((n, s) => n + (Number(s.reps) || 0), 0);
@@ -149,10 +167,17 @@ export function computeNextTarget(history, exerciseOrId) {
 
   const last = history[history.length - 1];
   const lastWeight = sessionLoad(last);
-  const lastTopReps = Math.max(...last.sets.map((s) => Number(s.reps) || 0));
+  const working = workingSets(last);
+
+  // The WORST working set, not the best. Double progression asks for the top of the range on
+  // EVERY set, so the weakest set is the one holding the load back — it's the only one whose
+  // improvement actually moves you forward.
+  const lastWorstReps = working.length
+    ? Math.min(...working.map((s) => Number(s.reps) || 0))
+    : 0;
 
   // ── Earned the increment?
-  if (earnedIncrement(last.sets, ex)) {
+  if (earnedIncrement(working, ex)) {
     const inc = incrementFor(ex);
     const next = inc ? round(lastWeight + inc) : lastWeight;
     return {
@@ -180,15 +205,18 @@ export function computeNextTarget(history, exerciseOrId) {
   }
 
   // ── Cleared the bottom of the range: same load, one more rep.
-  const clearedBottom = last.sets.every((s) => setClearsBottom(s, ex));
+  const clearedBottom = working.length > 0 && working.every((s) => setClearsBottom(s, ex));
   if (clearedBottom) {
-    const target = Math.min(lastTopReps + 1, hi);
+    const target = Math.min(lastWorstReps + 1, hi);
+    const short = working.length < ex.sets;
     return {
       action: ACTION.ADD_REPS,
       weight: lastWeight,
       reps: target,
       lastWeight,
-      note: `Same weight — get ${target} on every set.`,
+      note: short
+        ? `Same weight — get ${target} on every set. Only ${working.length} of ${ex.sets} sets were at ${fmtW(lastWeight, ex)} last time; the lighter ones count as warm-ups.`
+        : `Same weight — get ${target} on every set.`,
     };
   }
 
@@ -295,16 +323,27 @@ export function projectSets(history, exercise, target) {
   const observed = observedDecay(history, n);
   const decay = defaultDecay(exercise.restSec);
 
-  // What the AVERAGE set should come to. On a calibration session there's no earned target yet,
-  // so aim at the middle of the range — that's the honest "let's find out what you've got".
-  const mean = target.action === ACTION.CALIBRATE ? (lo + hi) / 2 : (target.reps || lo);
-
-  // Shape of the drop-off across sets, then scaled so its average lands on `mean`. Distributing
-  // around the target — rather than repeating it — is the whole point: set 1 is above it, the
-  // last set below, which is what actually happens under fatigue.
+  // Shape of the drop-off across sets — your own observed ratios where they exist, a rest-based
+  // model where they don't.
   const shape = Array.from({ length: n }, (_, i) => observed[i] ?? decay ** i);
+  const floorShape = Math.min(...shape);
   const avgShape = shape.reduce((a, b) => a + b, 0) / n;
-  const scale = avgShape > 0 ? mean / avgShape : 1;
+
+  /*
+   * WHERE THE CURVE GETS PINNED — the difference between a useful projection and a flat one.
+   *
+   * A progression target ("get 5 on all four sets") is a FLOOR: it's what the WORST set has to
+   * clear. Scaling the curve so its *average* lands there puts half the sets underneath the
+   * floor, and since reps can't be shown below `lo` they all clamp to the same number — the
+   * projection collapses to "5 / 5 / 5 / 5" and tells you nothing. Pinning the LAST set to the
+   * target instead keeps the whole curve at or above it, which is what the target actually asks.
+   *
+   * Calibration is the one case that inverts: there is no earned target, so the mid-range figure
+   * is a best guess to bracket rather than a floor to clear — average-pinning is right there.
+   */
+  const scale = target.action === ACTION.CALIBRATE
+    ? (avgShape > 0 ? ((lo + hi) / 2) / avgShape : 1)
+    : (floorShape > 0 ? (target.reps || lo) / floorShape : 1);
 
   return shape.map((r, i) => ({
     weight: target.weight,
