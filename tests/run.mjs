@@ -11,6 +11,7 @@ globalThis.localStorage = {
   removeItem: (k) => mem.delete(k),
 };
 globalThis.window = { dispatchEvent: () => {}, addEventListener: () => {} };
+globalThis.document = { addEventListener: () => {}, hidden: false };
 globalThis.CustomEvent = class { constructor(t, o) { this.type = t; Object.assign(this, o); } };
 // Node 20 exposes crypto as a getter-only global; randomUUID already exists there.
 
@@ -668,6 +669,39 @@ section('Ramp sets are not working sets');
   // …but four flat sets at the top of the range still do.
   const fourGood = [{ sets: Array.from({ length: 4 }, () => ({ weight: 70, reps: 8, rpe: 7 })) }];
   eq('four flat top-range sets earn the load', computeNextTarget(fourGood, bench).action, 'addLoad');
+}
+
+// ============================================================ cloud backup
+section('Cloud backup — the token must never reach a shared file');
+{
+  const cloud = await import(`${APP}/cloud.js`);
+  store.resetAll();
+
+  ok('disconnected until a token and gist both exist', !cloud.isConnected());
+
+  // Simulate a connected device by writing the config the way connect() would.
+  const SECRET = 'ghp_thisMustNeverLeakIntoAnExport';
+  mem.set('workout.cloud', JSON.stringify({ token: SECRET, gistId: 'abc123' }));
+  const fresh = await import(`${APP}/cloud.js?reload=1`);
+  ok('connected once token + gist are present', fresh.isConnected());
+  eq('status exposes the gist, never the token', Object.keys(fresh.status()).includes('token'), false);
+
+  store.upsertSession({ id: 's1', date: '2026-08-17', dayKey: 'push', week: 1, notes: '', entries: [
+    { exerciseId: 'bench-press', sets: [{ weight: 70, reps: 6, rpe: 8, done: true }] },
+  ] });
+
+  // THE invariant. exportJSON serialises the whole state object and that file gets emailed
+  // around — a credential inside it leaks on the first backup someone shares.
+  const backup = store.exportJSON();
+  ok('token is absent from the export', !backup.includes(SECRET));
+  ok('token is absent from the state object', !JSON.stringify(store.getState()).includes(SECRET));
+  ok('the export still carries the training data', backup.includes('bench-press'));
+
+  // Disconnect must actually destroy it, not just hide the UI.
+  fresh.disconnect();
+  ok('disconnect clears the stored token', !(mem.get('workout.cloud') || '').includes(SECRET));
+  ok('disconnected again', !fresh.isConnected());
+  store.resetAll();
 }
 
 // ============================================================ personal bests

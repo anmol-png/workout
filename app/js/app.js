@@ -9,6 +9,7 @@
 import { initUI, toast } from './ui.js';
 import { setWeightFormatter, setIncrementResolver } from './progression.js';
 import * as U from './units.js';
+import * as cloud from './cloud.js';
 import { initTimer } from './timer.js';
 import * as today from './views/today.js';
 import * as history from './views/history.js';
@@ -59,6 +60,9 @@ function boot() {
   // hint strings ("up 5.5 lb, back to 5 reps") read in whatever unit the user has selected.
   setWeightFormatter((kg, ex) => U.w(kg, ex?.id));
   setIncrementResolver((ex) => U.incrementKg(ex));
+
+  // Listens for store:changed and uploads on a debounce. A no-op until a token is connected.
+  cloud.init();
 
   window.addEventListener('hashchange', () => {
     render();
