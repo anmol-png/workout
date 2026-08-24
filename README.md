@@ -17,16 +17,17 @@ everything you do.
 
 | Day | Session | Emphasis |
 |---|---|---|
-| **Mon** | [Push](program/01-Push.md) | Chest, delts, triceps |
-| **Tue** | [Pull](program/02-Pull.md) | Back, rear delts, biceps |
-| **Wed** | [Legs](program/03-Legs.md) | Quad-dominant, squat anchor · + finisher |
+| **Mon** | [Legs](program/03-Legs.md) | Quad-dominant, squat anchor · + finisher |
+| **Tue** | [Push](program/01-Push.md) | Chest, delts, triceps |
+| **Wed** | [Pull](program/02-Pull.md) | Back, rear delts, biceps |
 | **Thu** | Rest | Walk |
-| **Fri** | [Upper](program/04-Upper.md) | Second chest/back/delt/arm dose |
-| **Sat** | [Lower](program/05-Lower.md) | Hinge/posterior + unilateral · + finisher |
+| **Fri** | [Lower](program/05-Lower.md) | Hinge/posterior + unilateral · + finisher |
+| **Sat** | [Upper](program/04-Upper.md) | Second chest/back/delt/arm dose |
 | **Sun** | Rest | Walk |
 
-Every muscle is trained **2×/week**. Legs land Wed and Sat so neither session runs on the other's
-fatigue.
+Every muscle is trained **2×/week**, and every pair sits 3 and 4 days apart — no session runs on
+its partner's fatigue. **Legs open the week** because they're the priority, and the priority
+session should be trained on the freshest day you have.
 
 ---
 

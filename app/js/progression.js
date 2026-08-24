@@ -48,10 +48,36 @@ export const ACTION = {
   ADD_REPS: 'addReps',      // stay at this load, add a rep
   REPEAT: 'repeat',         // didn't clear the bottom of the range — repeat
   STALL: 'stall',           // no progress in 3 sessions — back off or rotate
+  RETURN: 'return',         // back after a layoff — ease in before you pick up where you left off
 };
 
 const STALL_SESSIONS = 3;
 const STALL_BACKOFF = 0.9; // 10% off when a lift stalls
+
+/**
+ * Coming back to a lift after time away.
+ *
+ * The thing that bites after two weeks off is NOT lost strength — a trained lifter keeps
+ * essentially all of a 1RM through a fortnight. It's the repeated-bout effect: the protection
+ * against muscle damage that accumulated over weeks of squatting decays quickly. Load the same
+ * weight cold and you get soreness out of proportion to the work, which then eats the next three
+ * sessions. Backing off one session buys that protection back for the cost of one session.
+ *
+ * Past four weeks there IS measurable strength loss, so the cut deepens and the target reverts to
+ * finding the load again rather than resuming a number.
+ */
+const LAYOFF_DAYS = 14;
+const LAYOFF_BACKOFF = 0.9;
+const LONG_LAYOFF_DAYS = 28;
+const LONG_LAYOFF_BACKOFF = 0.8;
+
+/** Whole days between two ISO dates. Local to keep this module free of the store. */
+function daysApart(isoA, isoB) {
+  const a = Date.parse(`${isoA}T00:00:00`);
+  const b = Date.parse(`${isoB}T00:00:00`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.round((b - a) / 86400000);
+}
 
 /**
  * Did a single logged set clear the top of the rep range at or below the RPE ceiling?
@@ -142,7 +168,7 @@ export function earnedIncrement(sets, exercise) {
  * @param {string} exerciseId
  * @returns {{action:string, weight:number|null, reps:number, note:string, lastWeight:number|null}}
  */
-export function computeNextTarget(history, exerciseOrId) {
+export function computeNextTarget(history, exerciseOrId, todayIso = null) {
   // Accepts a resolved exercise object so a SUBSTITUTED slot uses the substitute's equipment
   // and starting load, not the original's.
   const ex = typeof exerciseOrId === 'string' ? getExercise(exerciseOrId) : exerciseOrId;
@@ -175,6 +201,27 @@ export function computeNextTarget(history, exerciseOrId) {
   const lastWorstReps = working.length
     ? Math.min(...working.map((s) => Number(s.reps) || 0))
     : 0;
+
+  // ── Back after time away? This is checked BEFORE the increment, deliberately. You can walk
+  // away from a lift having earned a load increase, and taking it cold three weeks later is
+  // exactly the session that produces a week of limping.
+  const today = todayIso || new Date().toISOString().slice(0, 10);
+  const gap = daysApart(last.date, today);
+  if (gap >= LAYOFF_DAYS) {
+    const long = gap >= LONG_LAYOFF_DAYS;
+    const backoff = long ? LONG_LAYOFF_BACKOFF : LAYOFF_BACKOFF;
+    const weeks = Math.floor(gap / 7);
+    return {
+      action: ACTION.RETURN,
+      weight: lastWeight ? round(lastWeight * backoff) : ex.startLoad,
+      reps: lo,
+      lastWeight,
+      layoffDays: gap,
+      note: long
+        ? `${weeks} weeks since you last did this. Treat today as recalibration — about ${Math.round((1 - backoff) * 100)}% off, stop at RPE 7, and find the load again.`
+        : `${weeks} weeks off this lift. Take ${Math.round((1 - backoff) * 100)}% off for ONE session and stop at RPE 7 — that's soreness insurance, not lost strength.`,
+    };
+  }
 
   // ── Earned the increment?
   if (earnedIncrement(working, ex)) {

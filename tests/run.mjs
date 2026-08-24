@@ -18,7 +18,7 @@ globalThis.CustomEvent = class { constructor(t, o) { this.type = t; Object.assig
 // Points at a copy of app/js that carries a {"type":"module"} package.json, so Node loads the
 // .js files as ES modules. The real app dir stays free of any npm artefact.
 const APP = process.env.APP_DIR || '/Users/anmolkhilwani/workout/app/js';
-const { computeNextTarget, earnedIncrement, ACTION, isStalled, describePerformance } = await import(`${APP}/progression.js`);
+const { computeNextTarget, earnedIncrement, ACTION, isStalled, describePerformance, projectSets: projectSetsFn } = await import(`${APP}/progression.js`);
 const { computePlates, nearestLoadable } = await import(`${APP}/plates.js`);
 const { getExercise, EXERCISES, DAYS, exercisesForDay } = await import(`${APP}/program.js`);
 const statsMod = await import(`${APP}/stats.js`);
@@ -57,6 +57,20 @@ section('Program data');
     }
   }
 
+  // ── The week. Legs moved to Monday so the priority session is trained freshest, which then
+  // sets everything else. The property that has to survive any reshuffle is SPACING: the two
+  // sessions that hit a muscle must never sit closer than 3 days, or the second one runs on the
+  // first one's fatigue and the extra frequency buys nothing.
+  const weekdayOf = (k) => DAYS.find((d) => d.key === k).weekday;
+  eq('Legs is Monday', weekdayOf('legs'), 1);
+  eq('Thursday is a rest day', DAYS.some((d) => d.weekday === 4), false);
+  eq('Sunday is a rest day', DAYS.some((d) => d.weekday === 0), false);
+  for (const [a, b] of [['legs', 'lower'], ['push', 'upper'], ['pull', 'upper']]) {
+    const raw = Math.abs(weekdayOf(a) - weekdayOf(b));
+    const apart = Math.min(raw, 7 - raw);
+    ok(`${a} and ${b} sit >=3 days apart`, apart >= 3, `got ${apart}`);
+  }
+
   // The program's central claim: legs get the biggest allocation.
   const planned = statsMod.plannedWeeklyVolume();
   const legs = planned.quads + planned.hamstrings + planned.glutes;
@@ -86,7 +100,7 @@ section('Progression — STRICT double progression');
   // All 4 sets at the top of the range, RPE within ceiling → add load.
   const perfect = [{ date: '2026-08-01', sets: [S(50, 8, 8), S(50, 8, 8), S(50, 8, 8), S(50, 8, 8)] }];
   ok('STRICT: 8,8,8,8 @RPE8 earns increment', earnedIncrement(perfect[0].sets, squat));
-  const t1 = computeNextTarget(perfect, 'back-squat');
+  const t1 = computeNextTarget(perfect, 'back-squat', '2026-08-04');
   eq('→ ADD_LOAD', t1.action, ACTION.ADD_LOAD);
   eq('→ +2.5 kg', t1.weight, 52.5);
   eq('→ restart at bottom of range', t1.reps, 5);
@@ -94,7 +108,7 @@ section('Progression — STRICT double progression');
   // One set short → strict says no.
   const nearMiss = [{ date: '2026-08-01', sets: [S(50, 8, 8), S(50, 8, 8), S(50, 8, 8), S(50, 7, 9)] }];
   ok('STRICT: 8,8,8,7 does NOT earn increment', !earnedIncrement(nearMiss[0].sets, squat));
-  const t2 = computeNextTarget(nearMiss, 'back-squat');
+  const t2 = computeNextTarget(nearMiss, 'back-squat', '2026-08-04');
   eq('→ ADD_REPS instead', t2.action, ACTION.ADD_REPS);
   eq('→ same weight', t2.weight, 50);
 
@@ -112,14 +126,14 @@ section('Progression — STRICT double progression');
 
   // Below the bottom of the range → repeat.
   const weak = [{ date: '2026-08-01', sets: [S(60, 4, 9), S(60, 4, 9), S(60, 3, 10), S(60, 3, 10)] }];
-  eq('below bottom → REPEAT', computeNextTarget(weak, 'back-squat').action, ACTION.REPEAT);
+  eq('below bottom → REPEAT', computeNextTarget(weak, 'back-squat', '2026-08-04').action, ACTION.REPEAT);
 
   // Stall detection: 3 sessions, no added weight or reps.
   const flat = ['2026-08-01', '2026-08-08', '2026-08-15'].map((date) => ({
     date, sets: [S(50, 6, 9), S(50, 6, 9), S(50, 6, 9), S(50, 6, 9)],
   }));
   ok('3 flat sessions → isStalled', isStalled(flat));
-  const t3 = computeNextTarget(flat, 'back-squat');
+  const t3 = computeNextTarget(flat, 'back-squat', '2026-08-18');
   eq('→ STALL', t3.action, ACTION.STALL);
   eq('→ 10% back-off', t3.weight, 45);
 
@@ -142,7 +156,7 @@ section('Progression — STRICT double progression');
   let w = 50, reps = 5;
   for (let week = 1; week <= 5; week++) {
     hist = [...hist, { date: `2026-09-0${week}`, sets: Array(4).fill(S(w, reps, 8)) }];
-    const t = computeNextTarget(hist, 'back-squat');
+    const t = computeNextTarget(hist, 'back-squat', `2026-09-0${week}`);
     track.push(`wk${week}: ${w}kg×${reps} → ${t.action} ${t.weight}kg×${t.reps}`);
     w = t.weight; reps = t.reps;
   }
@@ -396,12 +410,12 @@ section('Units — per-exercise kg/lb with realistic snapping');
   setIncrementResolver((ex) => U.incrementKg(ex));
   const perfect = [{ date: '2026-08-01', sets: Array(4).fill({ weight: 50, reps: 8, rpe: 8 }) }];
 
-  eq('kg lift suggests +2.5 kg', computeNextTarget(perfect, 'back-squat').note.includes('2.5 kg'), true);
+  eq('kg lift suggests +2.5 kg', computeNextTarget(perfect, 'back-squat', '2026-08-04').note.includes('2.5 kg'), true);
   store.setExerciseUnit('back-squat', 'lb');
-  const lbNote = computeNextTarget(perfect, 'back-squat').note;
+  const lbNote = computeNextTarget(perfect, 'back-squat', '2026-08-04').note;
   ok('lb lift suggests a lb jump', lbNote.includes('lb'), lbNote);
   ok('lb lift never says kg', !lbNote.includes(' kg'), lbNote);
-  const lbTarget = computeNextTarget(perfect, 'back-squat');
+  const lbTarget = computeNextTarget(perfect, 'back-squat', '2026-08-04');
   eq('and the snapped target is loadable in lb', U.snap(lbTarget.weight, squat) % 5, 0);
 
   // Bodyweight lifts still read as BW.
@@ -669,6 +683,37 @@ section('Ramp sets are not working sets');
   // …but four flat sets at the top of the range still do.
   const fourGood = [{ sets: Array.from({ length: 4 }, () => ({ weight: 70, reps: 8, rpe: 7 })) }];
   eq('four flat top-range sets earn the load', computeNextTarget(fourGood, bench).action, 'addLoad');
+}
+
+// ============================================================ layoff
+section('Coming back after time off');
+{
+  const squat = getExercise('back-squat');           // 4×5–8
+  // Left off having EARNED an increment — four clean sets at the top of the range.
+  const earned = [{ date: '2026-08-03', sets: Array.from({ length: 4 }, () => ({ weight: 60, reps: 8, rpe: 7 })) }];
+
+  eq('same week, the increment is taken', computeNextTarget(earned, squat, '2026-08-06').action, ACTION.ADD_LOAD);
+  eq('13 days is not a layoff', computeNextTarget(earned, squat, '2026-08-16').action, ACTION.ADD_LOAD);
+
+  // The whole point: an earned increment must NOT be collected cold two weeks later.
+  const back = computeNextTarget(earned, squat, '2026-08-17');
+  eq('14 days triggers the return protocol', back.action, ACTION.RETURN);
+  eq('10% off the last working load', back.weight, 54);
+  eq('back to the bottom of the range', back.reps, 5);
+  eq('reports the gap', back.layoffDays, 14);
+  ok('names the layoff in the note', /2 weeks/.test(back.note), back.note);
+
+  // Past a month, deeper cut and reframed as recalibration.
+  const long = computeNextTarget(earned, squat, '2026-09-05');
+  eq('33 days cuts 20%', long.weight, 48);
+  ok('reads as recalibration', /recalibration/.test(long.note), long.note);
+
+  // The projection still has to vary — a RETURN target sits at the bottom of the range, which is
+  // exactly the case that used to collapse to a flat line.
+  const proj = projectSetsFn([], squat, back);
+  ok('return projection still varies per set', new Set(proj.map((x) => x.reps)).size > 1,
+    proj.map((x) => x.reps).join('/'));
+  ok('never below the backed-off floor', proj.every((x) => x.reps >= 5));
 }
 
 // ============================================================ cloud backup

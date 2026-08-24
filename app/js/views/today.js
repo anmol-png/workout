@@ -106,6 +106,7 @@ export function render(root) {
     </div>`);
   }
 
+  html.push(layoffBanner(exercises, session, iso));
   html.push(warmupCard(dayKey, exercises));
 
   // Exercises, with supersets rendered as one bracketed block. Previously the only cue was a
@@ -227,6 +228,40 @@ function warmupCard(dayKey, exercises) {
   </div>`;
 }
 
+/**
+ * One banner when the whole SESSION has been away, rather than trusting the per-exercise notes.
+ *
+ * The load back-off is handled per lift by computeNextTarget, but volume is a session-level
+ * decision and belongs in one place. Anchoring on the anchor lifts (the first two) avoids firing
+ * on a day where only one accessory happens to be stale.
+ */
+function layoffBanner(exercises, session, iso) {
+  const anchors = exercises.filter((e) => !e.isFinisher).slice(0, 2);
+  if (!anchors.length) return '';
+
+  const gaps = anchors.map((baseEx) => {
+    const ex = resolved(baseEx);
+    const h = store.historyFor(ex.id).filter((x) => x.sessionId !== session.id);
+    if (!h.length) return null;
+    return store.daysBetween(h[h.length - 1].date, iso);
+  }).filter((n) => n != null);
+
+  if (gaps.length < anchors.length) return '';   // never trained = calibration, not a layoff
+  const gap = Math.min(...gaps);
+  if (gap < 14) return '';
+
+  const weeks = Math.floor(gap / 7);
+  // Mirrors the per-lift cut in progression.js — a banner quoting a different number than the
+  // loads underneath it is worse than no banner.
+  const cut = gap >= 28 ? 20 : 10;
+  return `<div class="banner warn">
+    <b>${weeks} weeks since this session.</b> Every load below is already backed off ~${cut}%.
+    Do <b>one fewer set</b> on each exercise today and skip the finisher — the limit on your first
+    session back is soreness, not strength, and it costs you the next three days if you get it wrong.
+    Full volume from the next one.
+  </div>`;
+}
+
 function exerciseCard(baseEx, session) {
   const sub = store.getSubstitution(baseEx.id);
   const ex = resolved(baseEx);
@@ -242,9 +277,10 @@ function exerciseCard(baseEx, session) {
   const isBW = ex.unit === 'bodyweight';
 
   const hintClass = target.action === ACTION.ADD_LOAD ? 'up'
-    : target.action === ACTION.STALL ? 'stall' : '';
+    : (target.action === ACTION.STALL || target.action === ACTION.RETURN) ? 'stall' : '';
   const hintIcon = target.action === ACTION.ADD_LOAD ? '↑'
-    : target.action === ACTION.STALL ? '!' : '·';
+    : target.action === ACTION.STALL ? '!'
+      : target.action === ACTION.RETURN ? '↺' : '·';
 
   const rows = [];
   for (let i = 0; i < ex.sets; i++) {

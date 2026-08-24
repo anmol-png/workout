@@ -47,15 +47,16 @@ You train **5 days**. Same days every week.
 
 | Day | What |
 |---|---|
-| **Monday** | Push — chest, shoulders, triceps |
-| **Tuesday** | Pull — back, biceps |
-| **Wednesday** | Legs |
+| **Monday** | Legs — squat day |
+| **Tuesday** | Push — chest, shoulders, triceps |
+| **Wednesday** | Pull — back, biceps |
 | **Thursday** | **Rest** |
-| **Friday** | Upper — chest, back, shoulders, arms |
-| **Saturday** | Lower — glutes, hamstrings |
+| **Friday** | Lower — glutes, hamstrings |
+| **Saturday** | Upper — chest, back, shoulders, arms |
 | **Sunday** | **Rest** |
 
-**You start Monday 17 August.**
+Legs go first because they're the part you're chasing, and Monday is the only day that always
+follows two rest days. Train the priority when you're freshest.
 
 You don't need to remember any of this. Open the app and it already knows what day it is and
 shows you that session.

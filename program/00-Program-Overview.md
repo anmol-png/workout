@@ -10,12 +10,12 @@
 
 | Day | Session | Emphasis | Finisher |
 |---|---|---|---|
-| **Mon** | [Push](01-Push.md) | Chest, delts, triceps | — |
-| **Tue** | [Pull](02-Pull.md) | Back, rear delts, biceps | — |
-| **Wed** | [Legs](03-Legs.md) | Quad-dominant, squat anchor | Sled / bike, 5 min |
+| **Mon** | [Legs](03-Legs.md) | Quad-dominant, squat anchor | Sled / bike, 5 min |
+| **Tue** | [Push](01-Push.md) | Chest, delts, triceps | — |
+| **Wed** | [Pull](02-Pull.md) | Back, rear delts, biceps | — |
 | **Thu** | Rest | Walk, 8–10k steps | — |
-| **Fri** | [Upper](04-Upper.md) | Second chest/back/delt/arm dose | — |
-| **Sat** | [Lower](05-Lower.md) | Hinge/posterior + unilateral | Sled / bike, 5 min |
+| **Fri** | [Lower](05-Lower.md) | Hinge/posterior + unilateral | Sled / bike, 5 min |
+| **Sat** | [Upper](04-Upper.md) | Second chest/back/delt/arm dose | — |
 | **Sun** | Rest | Walk, 8–10k steps | — |
 
 ### Why this exact ordering
@@ -23,13 +23,19 @@
 - **Every muscle is trained 2×/week.** Once weekly volume is equated, twice-weekly frequency
   matches or beats once-weekly for hypertrophy — and it lets you spread hard sets across two
   sessions instead of grinding 20 sets for one muscle in a single fatiguing block.
-- **Legs land Wed and Sat** — 3 days apart, then 4. Neither leg session is ever run on the
-  residual fatigue of the other. This matters because legs are the priority.
-- **Thursday's rest sits between Legs and Upper**, the two most demanding days.
-- **Push before Pull.** If Pull came first, fatigued biceps wouldn't matter much — but if Pull
-  came first you'd also be fresh for nothing in particular. Push-first means triceps aren't
-  pre-fatigued when you bench, which is the session's heaviest lift.
-- **Upper (Fri) and Lower (Sat) back-to-back is fine** — they share no muscle groups.
+- **Legs open the week.** They are the stated priority and the weakest link, and Monday is the
+  only day of the week guaranteed to follow two rest days. A priority muscle trained last, on
+  accumulated fatigue, gets the worst session of the week every week — which is precisely how a
+  lagging body part stays lagging.
+- **Legs Mon and Lower Fri** — 4 days apart, then 3. Neither leg session runs on the residual
+  fatigue of the other.
+- **Thursday's rest sits between Pull and Lower**, so the week's second hinge day starts clean.
+- **Push before Pull.** Push-first means triceps aren't pre-fatigued when you bench, which is the
+  session's heaviest lift.
+- **Lower (Fri) and Upper (Sat) back-to-back is fine** — they share no muscle groups.
+- **The one cost of this ordering:** Monday's RDLs leave the lower back working on Wednesday's
+  barbell row. If it's still sore, swap the row for a chest-supported row that session — the
+  lats get the same work with the spine unloaded.
 
 ---
 

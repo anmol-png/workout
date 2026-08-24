@@ -42,11 +42,11 @@ export const INCREMENT = {
 };
 
 export const DAYS = [
-  { key: 'push',  name: 'Push',  code: 'PUSH',  subtitle: 'Chest · Delts · Triceps',        weekday: 1, doc: '01-Push.md'  },
-  { key: 'pull',  name: 'Pull',  code: 'PULL',  subtitle: 'Back · Rear Delts · Biceps',     weekday: 2, doc: '02-Pull.md'  },
-  { key: 'legs',  name: 'Legs',  code: 'LEGS',  subtitle: 'Quad-dominant · Squat anchor',   weekday: 3, doc: '03-Legs.md'  },
-  { key: 'upper', name: 'Upper', code: 'UPPER', subtitle: 'Chest · Back · Delts · Arms',    weekday: 5, doc: '04-Upper.md' },
-  { key: 'lower', name: 'Lower', code: 'LOWER', subtitle: 'Hinge · Posterior · Unilateral', weekday: 6, doc: '05-Lower.md' },
+  { key: 'legs',  name: 'Legs',  code: 'LEGS',  subtitle: 'Quad-dominant · Squat anchor',   weekday: 1, doc: '03-Legs.md'  },
+  { key: 'push',  name: 'Push',  code: 'PUSH',  subtitle: 'Chest · Delts · Triceps',        weekday: 2, doc: '01-Push.md'  },
+  { key: 'pull',  name: 'Pull',  code: 'PULL',  subtitle: 'Back · Rear Delts · Biceps',     weekday: 3, doc: '02-Pull.md'  },
+  { key: 'lower', name: 'Lower', code: 'LOWER', subtitle: 'Hinge · Posterior · Unilateral', weekday: 5, doc: '05-Lower.md' },
+  { key: 'upper', name: 'Upper', code: 'UPPER', subtitle: 'Chest · Back · Delts · Arms',    weekday: 6, doc: '04-Upper.md' },
   // Optional extra — no fixed weekday. Arms and side delts are the cheapest muscles to add a
   // session for: small, fast-recovering, and they don't compete with leg recovery.
   { key: 'arms',  name: 'Arms',  code: 'ARMS',  subtitle: 'Biceps · Triceps · Side Delts', weekday: null, optional: true },
