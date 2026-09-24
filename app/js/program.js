@@ -159,7 +159,7 @@ export const EXERCISES = [
   {
     id: 'seated-cable-row', day: 'pull', order: 'C', name: 'Seated Cable Row (neutral)',
     muscles: { primary: ['back'], secondary: ['rearDelts', 'biceps'] },
-    sets: 3, repRange: [10, 12], rpe: [8, 9], restSec: 90,
+    sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 90,
     increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 50,
     cues: [
       'Let the shoulder blades protract fully at the front — real stretch.',
@@ -240,7 +240,7 @@ export const EXERCISES = [
   {
     id: 'rdl', day: 'legs', order: 'C', name: 'Romanian Deadlift',
     muscles: { primary: ['hamstrings'], secondary: ['glutes', 'back'] },
-    sets: 3, repRange: [8, 10], rpe: [8, 8], restSec: 120,
+    sets: 3, repRange: [8, 12], rpe: [8, 8], restSec: 120,
     increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 50,
     cues: [
       'SOFT knees, not bent. This is a hinge, not a squat.',
@@ -336,7 +336,7 @@ export const EXERCISES = [
   {
     id: 'chest-supported-row', day: 'upper', order: 'C2', supersetGroup: 'C', name: 'Chest-Supported Row',
     muscles: { primary: ['back'], secondary: ['rearDelts', 'biceps'] },
-    sets: 3, repRange: [10, 12], rpe: [8, 9], restSec: 90,
+    sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 90,
     increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 36,
     cues: [
       'Chest pad removes the lower back entirely — no spinal fatigue two days before Lower.',
@@ -361,7 +361,7 @@ export const EXERCISES = [
     // 2 sets, not 3: the biceps already take ~10 sets/week between Pull's direct work and the
     // spillover from every row and pulldown. Arms don't need a third set here more than legs
     // need the recovery.
-    sets: 2, repRange: [10, 12], rpe: [9, 9], restSec: 15,
+    sets: 2, repRange: [10, 15], rpe: [9, 9], restSec: 15,
     increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 27.5,
     cues: [
       'Angled grip spares the wrists and lets you load heavier than DB curls.',
@@ -447,7 +447,7 @@ export const EXERCISES = [
   {
     id: 'hanging-leg-raise', day: 'lower', order: 'E2', supersetGroup: 'E', name: 'Hanging Leg Raise',
     muscles: { primary: ['core'], secondary: [] },
-    sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 75,
+    sets: 3, repRange: [8, 15], rpe: [8, 9], restSec: 75,
     increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
     cues: [
       'CURL THE PELVIS toward the ribs — hip flexors lift legs, abs tilt the pelvis.',
@@ -506,7 +506,7 @@ export const EXERCISES = [
   {
     id: 'arms-preacher-curl', day: 'arms', order: 'C2', supersetGroup: 'C', name: 'Preacher Curl',
     muscles: { primary: ['biceps'], secondary: [] },
-    sets: 3, repRange: [10, 12], rpe: [9, 9], restSec: 90,
+    sets: 3, repRange: [8, 12], rpe: [9, 9], restSec: 90,
     increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 20,
     cues: [
       'The pad kills the swing, so the biceps get the whole set — nothing else can help.',

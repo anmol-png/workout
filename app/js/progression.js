@@ -51,6 +51,22 @@ export const ACTION = {
   RETURN: 'return',         // back after a layoff — ease in before you pick up where you left off
 };
 
+/**
+ * History with drop segments removed.
+ *
+ * A drop exists precisely BECAUSE the prescribed load was not completed. Counting it would invert
+ * its meaning: fall short at 70 kg, finish the reps at 55 kg, and the engine would read a full set
+ * at the top of the range and add weight — rewarding the session you failed. The reps that count
+ * toward progression are the ones performed at the load you were asked to lift.
+ *
+ * The work still exists; it is counted as volume in stats.js, where it belongs.
+ */
+function workingHistory(history) {
+  return history
+    .map((h) => ({ ...h, sets: h.sets.filter((x) => !x.isDrop) }))
+    .filter((h) => h.sets.length);
+}
+
 /** "12 reps" / "45 s" — the unit of work, so progression notes read correctly on timed holds. */
 function unitOfWork(n, ex) {
   return isTimed(ex) ? `${n} s` : `${n} reps`;
@@ -180,6 +196,7 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
   if (!ex) return { action: ACTION.CALIBRATE, weight: null, reps: 0, note: '', lastWeight: null };
 
   const [lo, hi] = ex.repRange;
+  history = workingHistory(history);
 
   // ── No history: Week 1 calibration.
   if (!history.length) {
@@ -315,7 +332,8 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
 }
 
 /** No improvement in weight or total reps across the last STALL_SESSIONS sessions. */
-export function isStalled(history) {
+export function isStalled(rawHistory) {
+  const history = workingHistory(rawHistory);
   if (history.length < STALL_SESSIONS) return false;
   const recent = history.slice(-STALL_SESSIONS);
   const first = recent[0];
@@ -401,7 +419,8 @@ function observedDecay(history, nSets) {
  *
  * @returns {Array<{weight:number|null, reps:number, note:string}>} one entry per working set
  */
-export function projectSets(history, exercise, target) {
+export function projectSets(rawHistory, exercise, target) {
+  const history = workingHistory(rawHistory);
   const n = exercise.sets;
   const [lo, hi] = exercise.repRange;
   const observed = observedDecay(history, n);

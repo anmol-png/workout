@@ -297,22 +297,34 @@ function exerciseCard(baseEx, session) {
     : target.action === ACTION.STALL ? '!'
       : target.action === ACTION.RETURN ? '↺' : '·';
 
+  /*
+   * Rows are indexed by POSITION in entry.sets, not by working-set number, because a drop is
+   * stored as an extra row right after the set it belongs to. That keeps every existing input
+   * handler, the rest timer and the PR check working unchanged — a drop is just a set that is
+   * marked as a continuation — while letting the progression engine ignore it.
+   */
+  const stored = entry?.sets || [];
   const rows = [];
-  for (let i = 0; i < ex.sets; i++) {
-    const s = (entry?.sets || [])[i] || {};
+  let workingNo = 0;
+  const total = Math.max(ex.sets, stored.length);
+  for (let i = 0; i < total; i++) {
+    const s = stored[i] || {};
+    const drop = !!s.isDrop;
+    if (!drop) workingNo += 1;
+    if (i >= ex.sets && !drop && !(s.reps > 0)) continue;   // don't render empty trailing rows
     rows.push(`
-      <div class="set ${s.reps > 0 ? 'logged' : ''} ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
-        <span class="set-n">${s.isPR ? '★' : i + 1}</span>
+      <div class="set ${drop ? 'is-drop' : ''} ${s.reps > 0 ? 'logged' : ''} ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
+        <span class="set-n">${drop ? '↳' : (s.isPR ? '★' : workingNo)}</span>
         <input type="number" inputmode="decimal" step="${U.step(ex.id)}" data-f="weight"
           placeholder="${isBW ? 'BW' : (target.weight != null ? U.snapNum(target.weight, ex) : U.unitFor(ex.id))}"
-          value="${s.weight == null ? '' : U.num(s.weight, ex.id)}" aria-label="Set ${i + 1} weight">
+          value="${s.weight == null ? '' : U.num(s.weight, ex.id)}" aria-label="${drop ? 'Drop' : 'Set'} ${workingNo} weight">
         <input type="number" inputmode="numeric" step="${isTimed(ex) ? 5 : 1}" data-f="reps"
           placeholder="${projection[i]?.reps ?? target.reps ?? ex.repRange[0]}"
-          value="${s.reps ?? ''}" aria-label="Set ${i + 1} ${isTimed(ex) ? 'seconds' : 'reps'}">
+          value="${s.reps ?? ''}" aria-label="${drop ? 'Drop' : 'Set'} ${workingNo} ${isTimed(ex) ? 'seconds' : 'reps'}">
         <input type="number" inputmode="decimal" step="0.5" min="5" max="10" data-f="rpe"
           placeholder="RPE ${ex.rpe[1]}"
-          value="${s.rpe ?? ''}" aria-label="Set ${i + 1} RPE">
-        <button class="set-check" data-act="toggle" aria-label="Mark set ${i + 1} done" aria-pressed="${!!s.done}">
+          value="${s.rpe ?? ''}" aria-label="${drop ? 'Drop' : 'Set'} ${workingNo} RPE">
+        <button class="set-check" data-act="toggle" aria-label="Mark ${drop ? 'drop' : 'set'} ${workingNo} done" aria-pressed="${!!s.done}">
           <svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
         </button>
       </div>`);
@@ -351,6 +363,7 @@ function exerciseCard(baseEx, session) {
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}
+          <button class="btn sm ghost" data-act="drop">+ Drop set</button>
           <button class="btn sm ghost" data-act="prefill">Fill target</button>
           <button class="btn sm ghost" data-act="swap">Swap</button>
         </div>
@@ -397,6 +410,7 @@ function wire(root, session, exercises) {
     if (act === 'toggle' && setRow) return toggleSet(setRow, session);
     if (act === 'info' && ex) return showInfo(ex);
     if (act === 'plates' && ex) return showPlates(ex, session);
+    if (act === 'drop' && ex) return addDrop(ex, session);
     if (act === 'prefill' && ex) return prefill(ex, session);
     if (act === 'swap' && ex) return showSwap(ex);
     if (act === 'finisher-done' && ex) return markFinisher(ex, session);
@@ -570,6 +584,41 @@ function toggleSet(row, session) {
   // group's LAST member carries the full rest. That's encoded in program.js, so the timer just
   // reads it — no special-casing needed here.
   if (ex.restSec > 0) startTimer(ex.restSec, `Rest · ${ex.name}`);
+}
+
+/**
+ * Add a drop to the last set that has anything logged.
+ *
+ * The case this exists for: the target says 70 kg x 8, you get 5 and the sixth will not move.
+ * Without somewhere to put the rest, the options are to log 5 and lose the work, or to log 8 and
+ * lie to the engine — which then adds load next session on a set you did not actually complete.
+ * A drop records both truths: the reps you got AT the prescribed load, and the work you finished
+ * after reducing it.
+ *
+ * Default is ~20% off, the usual drop-set reduction and about what lets you finish the range.
+ */
+function addDrop(baseEx, session) {
+  const ex = resolved(baseEx);
+  const entry = entryFor(session, ex.id);
+
+  // Attach to the last row carrying reps — that is the set you just failed on.
+  let anchor = -1;
+  entry.sets.forEach((x, i) => { if ((x.reps || 0) > 0) anchor = i; });
+  if (anchor < 0) return toast('Log the set you fell short on first, then add the drop');
+
+  const parent = entry.sets[anchor];
+  const dropKg = Number(parent.weight) > 0
+    ? U.toKg(U.snap(parent.weight * (ex.inverted ? 1.2 : 0.8), ex), ex.id)
+    : null;
+
+  entry.sets.splice(anchor + 1, 0, {
+    weight: dropKg, reps: null, rpe: null, done: false, isDrop: true,
+  });
+  store.upsertSession(session);
+  rerender();
+  toast(dropKg
+    ? `Drop added at ${U.w(dropKg, ex.id)} — finish the reps there`
+    : 'Drop added — log what you finished with');
 }
 
 function prefill(ex, session) {

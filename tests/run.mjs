@@ -71,6 +71,15 @@ section('Program data');
     ok(`${a} and ${b} sit >=3 days apart`, apart >= 3, `got ${apart}`);
   }
 
+  // Double progression needs ROOM. With a 2-rep band you must add a rep on every set at once to
+  // earn an increment, which on a bad week means the load never moves at all — the lift reads as
+  // stalled when the programming, not the athlete, is the constraint.
+  for (const ex of EXERCISES) {
+    if (ex.isFinisher || ex.repRange[0] === ex.repRange[1]) continue;   // fixed-rep power lifts opt out
+    const band = ex.repRange[1] - ex.repRange[0];
+    ok(`${ex.id}: rep band >= 3`, band >= 3, `${ex.repRange.join('-')} is a band of ${band}`);
+  }
+
   // The program's central claim: legs get the biggest allocation.
   const planned = statsMod.plannedWeeklyVolume();
   const legs = planned.quads + planned.hamstrings + planned.glutes;
@@ -714,6 +723,114 @@ section('Coming back after time off');
   ok('return projection still varies per set', new Set(proj.map((x) => x.reps)).size > 1,
     proj.map((x) => x.reps).join('/'));
   ok('never below the backed-off floor', proj.every((x) => x.reps >= 5));
+}
+
+// ============================================================ swap, end to end
+section('Swap — everything that must change, and everything that must not');
+{
+  const { resolveExercise, isTimed } = await import(`${APP}/program.js`);
+  const U = await import(`${APP}/units.js`);
+  store.resetAll();
+
+  const bench = getExercise('bench-press');          // barbell, 50 kg start, +2.5
+
+  // 1. EQUIPMENT changes, not just the label. This was the original bug: the name changed and
+  //    the weights stayed on barbell increments.
+  const db = resolveExercise(bench, 'Dumbbell Bench Press');
+  eq('name changes', db.name, 'Dumbbell Bench Press');
+  eq('unit follows the new equipment', db.unit, 'dumbbell');
+  eq('start load follows too', db.startLoad, 18);
+  ok('increment follows the equipment', db.increment !== bench.increment, `${db.increment} vs ${bench.increment}`);
+  eq('the slot id is preserved so history stays attached', db.id, bench.id);
+
+  // 2. Programming that belongs to the SLOT must survive the swap.
+  eq('sets are unchanged', db.sets, bench.sets);
+  eq('rep range unchanged for a like-for-like swap', db.repRange, bench.repRange);
+  eq('rpe unchanged', db.rpe, bench.rpe);
+  eq('muscles unchanged', db.muscles, bench.muscles);
+
+  // 3. A swap that changes the UNIT OF WORK may override the range (ab wheel → plank).
+  const plank = resolveExercise(getExercise('arms-ab-wheel'), 'Plank');
+  ok('a timed substitute overrides the range', isTimed(plank) && plank.repRange[1] === 60);
+
+  // 4. HISTORY separates, so a barbell load is never carried onto a dumbbell.
+  store.upsertSession({ id: 'w1', date: '2026-09-01', dayKey: 'push', week: 1, notes: '', entries: [
+    { exerciseId: 'bench-press', performedAs: 'Barbell Bench Press',
+      sets: Array.from({ length: 4 }, () => ({ weight: 70, reps: 8, rpe: 7 })) }] });
+  store.upsertSession({ id: 'w2', date: '2026-09-08', dayKey: 'push', week: 2, notes: '', entries: [
+    { exerciseId: 'bench-press', performedAs: 'Dumbbell Bench Press',
+      sets: Array.from({ length: 4 }, () => ({ weight: 25, reps: 8, rpe: 7 })) }] });
+
+  const barbellTarget = computeNextTarget(store.historyFor('bench-press', 'Barbell Bench Press'), bench, '2026-09-10');
+  const dbTarget = computeNextTarget(store.historyFor('bench-press', 'Dumbbell Bench Press'), db, '2026-09-10');
+  ok('barbell target builds on 70 kg', barbellTarget.weight > 70 && barbellTarget.weight < 75, `${barbellTarget.weight}`);
+  ok('dumbbell target builds on 25 kg, not 70', dbTarget.weight > 25 && dbTarget.weight < 30, `${dbTarget.weight}`);
+
+  // 5. PERSONAL BESTS follow the variant in the slot rather than blending the two.
+  store.setSubstitution('bench-press', 'Dumbbell Bench Press');
+  const pb = statsMod.personalBests().find((b) => b.id === 'bench-press');
+  eq('the best set is the dumbbell one', pb.set.weight, 25);
+  store.setSubstitution('bench-press', null);
+  eq('…and the barbell one once swapped back', statsMod.personalBests().find((b) => b.id === 'bench-press').set.weight, 70);
+
+  // 6. The per-exercise UNIT override belongs to the slot and must survive a swap.
+  store.setExerciseUnit('bench-press', 'lb');
+  eq('unit override persists across the swap', U.unitFor('bench-press'), 'lb');
+  store.setExerciseUnit('bench-press', null);
+
+  // 7. Swapping back to the programmed exercise restores it exactly.
+  eq('swapping back restores the original', resolveExercise(bench, null).name, 'Barbell Bench Press');
+  ok('and is not marked substituted', !resolveExercise(bench, null)._substituted);
+
+  // 8. EVERY substitute in the whole program resolves to usable equipment.
+  let checked = 0;
+  for (const ex of EXERCISES) {
+    for (const name of ex.substitutes || []) {
+      const r = resolveExercise(ex, name);
+      checked += 1;
+      ok(`${ex.id} → ${name} keeps its sets`, r.sets === ex.sets);
+      ok(`${ex.id} → ${name} has a valid rep range`, r.repRange[0] <= r.repRange[1] && r.repRange[0] > 0);
+      ok(`${ex.id} → ${name} is marked substituted`, r._substituted === true);
+    }
+  }
+  ok(`all ${checked} substitutes resolve cleanly`, checked > 100, `only ${checked}`);
+  store.resetAll();
+}
+
+// ============================================================ drop sets
+section('Drop sets — finishing the work without lying about the load');
+{
+  const squat = getExercise('back-squat');   // 4×5–8 @ RPE 7–8
+  const S = (w, r, rpe, extra = {}) => ({ weight: w, reps: r, rpe, ...extra });
+
+  // The session this exists for: the target was 8 at 70, four sets got 8/8/8/5, and the last set
+  // was finished at 55 kg. Logging 8 across the board would earn an increment on a set that was
+  // never completed at 70.
+  const withDrop = [{ date: '2026-09-20', sets: [
+    S(70, 8, 8), S(70, 8, 8), S(70, 8, 8), S(70, 5, 10), S(55, 3, 9, { isDrop: true })] }];
+
+  const t = computeNextTarget(withDrop, squat, '2026-09-22');
+  ok('the drop does NOT earn the increment', t.action !== ACTION.ADD_LOAD, t.action);
+  eq('the load stays where it was', t.weight, 70);
+
+  // Remove the failure and it should bank — proving the drop is what held it back, not the shape.
+  const clean = [{ date: '2026-09-20', sets: [S(70, 8, 8), S(70, 8, 8), S(70, 8, 8), S(70, 8, 8)] }];
+  eq('a genuinely complete session still banks it', computeNextTarget(clean, squat, '2026-09-22').action, ACTION.ADD_LOAD);
+
+  // A drop must not drag the working load down either — 55 kg is not the new working weight.
+  const dropHeavy = [{ date: '2026-09-20', sets: [
+    S(70, 5, 9), S(70, 5, 9), S(55, 6, 9, { isDrop: true }), S(55, 5, 9, { isDrop: true })] }];
+  eq('working load ignores the dropped weight', computeNextTarget(dropHeavy, squat, '2026-09-22').weight, 70);
+
+  // Counting: one set finished with a drop is ONE hard set, and the drop is never a record.
+  const session = { id: 'd1', date: '2026-09-20', dayKey: 'legs', week: 1, notes: '', entries: [
+    { exerciseId: 'back-squat', sets: [S(70, 8, 8), S(70, 5, 10), S(55, 4, 9, { isDrop: true })] }] };
+  store.resetAll();
+  store.upsertSession(session);
+  eq('a drop is not an extra hard set', statsMod.sessionSetCount(session), 2);
+  ok('but the work still counts as volume', statsMod.sessionVolume(session) > 70 * 13);
+  eq('a drop can never be a personal best', statsMod.scoreSet(S(55, 20, 9, { isDrop: true }), squat), 0);
+  store.resetAll();
 }
 
 // ============================================================ timed holds

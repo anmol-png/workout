@@ -115,10 +115,12 @@ function showSession(id) {
     const bestIdx = top ? sets.indexOf(top.set) : -1;
     const tiesAllTime = top && allTime > 0 && top.e1rm >= allTime - 0.01;
 
+    let setNo = 0;
     const rows = sets.map((x, i) => {
       const isBest = i === bestIdx && tiesAllTime;
-      return `<tr${isBest ? ' class="best"' : ''}>
-        <td class="dim">${i + 1}</td>
+      if (!x.isDrop) setNo += 1;
+      return `<tr${isBest ? ' class="best"' : ''}${x.isDrop ? ' class="drop"' : ''}>
+        <td class="dim">${x.isDrop ? '↳' : setNo}</td>
         <td><b>${loadLabel(x.weight, ex)}</b></td>
         <td>${formatReps(x.reps, ex)}</td>
         <td class="muted">${x.rpe ? `RPE ${x.rpe}` : '—'}</td>
@@ -128,11 +130,12 @@ function showSession(id) {
 
     const vol = sets.reduce((n, x) => n + (Number(x.weight) || 0) * (Number(x.reps) || 0), 0);
     const totalReps = sets.reduce((n, x) => n + x.reps, 0);
+    const hardSets = sets.filter((x) => !x.isDrop).length;
 
     return `<div class="sess-ex">
       <div class="row between">
         <b class="small">${escapeHtml(ex.name)}</b>
-        <span class="xs dim">${sets.length} sets · ${isTimed(ex) ? `${totalReps} s` : `${totalReps} reps`}${vol ? ` · ${U.volume(vol)}` : ''}</span>
+        <span class="xs dim">${hardSets} sets · ${isTimed(ex) ? `${totalReps} s` : `${totalReps} reps`}${vol ? ` · ${U.volume(vol)}` : ''}</span>
       </div>
       <table class="sess-tbl">${rows}</table>
     </div>`;
@@ -195,7 +198,7 @@ function sessionText(s) {
       const w = ex.unit === 'bodyweight'
         ? ((Number(x.weight) || 0) > 0 ? `BW+${U.num(x.weight, ex.id)}` : 'BW')
         : `${U.num(x.weight, ex.id)}${U.unitFor(ex.id)}`;
-      return `${w}×${x.reps}${isTimed(ex) ? 's' : ''}${x.rpe ? `@${x.rpe}` : ''}`;
+      return `${x.isDrop ? '↳' : ''}${w}×${x.reps}${isTimed(ex) ? 's' : ''}${x.rpe ? `@${x.rpe}` : ''}`;
     }).join(', ');
     lines.push(`${ex.order}. ${ex.name} — ${txt}`);
   }

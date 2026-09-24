@@ -556,3 +556,11 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .superset.broken { border-style: dashed; opacity: .96 }
 .superset-badge.muted { background: var(--line); color: var(--text-dim) }
 .superset-head .btn.sm { margin-left: auto }
+
+/* A drop is a CONTINUATION of the set above it, not a set of its own — indented, quieter, and
+   marked with an arrow instead of a number so the working-set count stays readable at a glance. */
+.set.is-drop { margin-left: 18px; opacity: .92 }
+.set.is-drop .set-n { color: var(--accent); font-size: 14px }
+.set.is-drop input { background: transparent; border-style: dashed }
+.sess-tbl tr.drop td { opacity: .78 }
+.sess-tbl tr.drop td:first-child { color: var(--accent) }

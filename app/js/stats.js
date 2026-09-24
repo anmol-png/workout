@@ -41,6 +41,8 @@ export function e1RM(weight, reps, rpe = null) {
  * unassisted one, and to a weighted one, on a single axis.
  */
 export function scoreSet(set, exercise = null) {
+  // A drop is what you managed AFTER failing the prescribed load. It is never a record.
+  if (set?.isDrop) return 0;
   // A 60-second plank is not "60 reps". Epley is meaningless for an isometric hold, and feeding
   // seconds into it manufactures personal bests out of nothing, so timed work scores zero and is
   // simply absent from the PR list rather than wrong in it.
@@ -118,7 +120,9 @@ export function weeklyVolume(weekStartISO) {
     for (const entry of s.entries) {
       const ex = getExercise(entry.exerciseId);
       if (!ex || ex.isFinisher) continue;
-      const done = entry.sets.filter((set) => set.reps > 0).length;
+      // A drop is a continuation of the set above it, not another hard set — counting it would
+      // inflate weekly volume every time a session went badly, which is exactly backwards.
+      const done = entry.sets.filter((set) => set.reps > 0 && !set.isDrop).length;
       if (!done) continue;
       for (const m of ex.muscles.primary) totals[m] += done;
       for (const m of ex.muscles.secondary) totals[m] += done * 0.5;
@@ -159,7 +163,7 @@ export function weeklySetCounts(weekStartISO) {
     for (const entry of s.entries) {
       const ex = getExercise(entry.exerciseId);
       if (!ex || ex.isFinisher) continue;
-      const done = entry.sets.filter((set) => set.reps > 0).length;
+      const done = entry.sets.filter((set) => set.reps > 0 && !set.isDrop).length;
       total += done;
       if (ex.muscles.primary.some((m) => LEG.has(m))) legs += done;
     }
@@ -251,7 +255,7 @@ export function sessionVolume(session) {
 }
 
 export function sessionSetCount(session) {
-  return session.entries.reduce((n, e) => n + e.sets.filter((s) => s.reps > 0).length, 0);
+  return session.entries.reduce((n, e) => n + e.sets.filter((s) => s.reps > 0 && !s.isDrop).length, 0);
 }
 
 /** Consecutive weeks (Monday-anchored) with at least one logged session, counting back from now. */
