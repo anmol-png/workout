@@ -52,8 +52,10 @@ function emptyState() {
      * pulldown. A single global unit can't describe that, so each exercise may override it.
      */
     exerciseUnits: {},
-    /** exerciseId -> { perSide?: true, addKg?: number } — see getExerciseConfig. */
+    /** exerciseId -> { reading?: string } — see getExerciseConfig. */
     exerciseConfig: {},
+    /** 'dayKey:GROUP' -> true when the pair can't be run back to back. */
+    brokenSupersets: {},
     /**
      * isoDate -> dayKey. Life moves training days around: a missed session, a day you don't
      * fancy, an extra optional one. Pinning a session to a date lets the week be rearranged
@@ -205,6 +207,11 @@ function migrate(data) {
     exerciseUnits: data.exerciseUnits || {},
     schedule: data.schedule || {},
     exerciseConfig: data.exerciseConfig || {},
+    // Seeded once, the first load after this field existed: the athlete reported that the hanging
+    // leg raise frame and the cable stack are on different floors, so E can never be a superset
+    // for them. Absence of the key — not a schema number — is the trigger, because their data is
+    // already at the current version.
+    brokenSupersets: data.brokenSupersets || { 'arms:E': true },
     sessions: dedupeSessions(Array.isArray(data.sessions) ? data.sessions : []),
   };
 
@@ -418,6 +425,27 @@ export function setScheduledDay(iso, dayKey) {
  * Kept out of `exerciseUnits` because it answers a different question: that one is "which unit is
  * printed on this machine", this one is "what does the printed number leave out".
  */
+/**
+ * Superset pairs the athlete's gym can't actually support.
+ *
+ * A superset assumes two stations within a few steps of each other. Real gyms are laid out by
+ * equipment type, sometimes across floors — this one has the hanging-leg-raise frame and the cable
+ * stack on different levels, which makes a 20-second transition physically impossible. Rather than
+ * guess a layout I can't see, the pairing is breakable per day+group and the rest periods adjust.
+ *
+ * Keyed `dayKey:GROUP`, e.g. `arms:E`.
+ */
+export function isSupersetBroken(dayKey, group) {
+  return Boolean(state.brokenSupersets[`${dayKey}:${group}`]);
+}
+
+export function setSupersetBroken(dayKey, group, broken) {
+  const k = `${dayKey}:${group}`;
+  if (broken) state.brokenSupersets[k] = true;
+  else delete state.brokenSupersets[k];
+  commit();
+}
+
 export function getExerciseConfig(exerciseId) {
   return state.exerciseConfig[exerciseId] || null;
 }

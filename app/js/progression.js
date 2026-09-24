@@ -13,7 +13,7 @@
  * Everything else in here is bookkeeping around that one idea.
  */
 
-import { getExercise } from './program.js';
+import { getExercise, isTimed } from './program.js';
 
 /**
  * How weights get rendered inside the hint strings below.
@@ -50,6 +50,11 @@ export const ACTION = {
   STALL: 'stall',           // no progress in 3 sessions — back off or rotate
   RETURN: 'return',         // back after a layoff — ease in before you pick up where you left off
 };
+
+/** "12 reps" / "45 s" — the unit of work, so progression notes read correctly on timed holds. */
+function unitOfWork(n, ex) {
+  return isTimed(ex) ? `${n} s` : `${n} reps`;
+}
 
 const STALL_SESSIONS = 3;
 const STALL_BACKOFF = 0.9; // 10% off when a lift stalls
@@ -236,14 +241,14 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
       weight: next,
       reps: lo,
       lastWeight,
-      note: !inc ? `You hit ${hi}s last time — add load or a notch.`
+      note: !inc ? `You hit ${isTimed(ex) ? `${hi} s` : `${hi}s`} last time — add load or a notch.`
         : ex.inverted
           ? (next === 0
-            ? `You hit ${hi}s last time — that's the whole stack gone. Try it unassisted.`
-            : `You hit ${hi}s last time — drop the assist by ${fmtW(inc, ex)}, back to ${lo} reps.`)
+            ? `You hit ${isTimed(ex) ? `${hi} s` : `${hi}s`} last time — that's the whole stack gone. Try it unassisted.`
+            : `You hit ${isTimed(ex) ? `${hi} s` : `${hi}s`} last time — drop the assist by ${fmtW(inc, ex)}, back to ${unitOfWork(lo, ex)}.`)
           : ex.unit === 'bodyweight'
-            ? `You hit ${hi}s last time — add ${fmtW(inc, ex)} on a belt, back to ${lo} reps.`
-            : `You hit ${hi}s last time — up ${fmtW(inc, ex)}, back to ${lo} reps.`,
+            ? `You hit ${isTimed(ex) ? `${hi} s` : `${hi}s`} last time — add ${fmtW(inc, ex)} on a belt, back to ${unitOfWork(lo, ex)}.`
+            : `You hit ${isTimed(ex) ? `${hi} s` : `${hi}s`} last time — up ${fmtW(inc, ex)}, back to ${unitOfWork(lo, ex)}.`,
     };
   }
 
@@ -277,7 +282,7 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
       reps: hi,
       lastWeight,
       rpeBlocked: true,
-      note: `You already hit ${hi}s — the load is stuck because they cost RPE ${fmt(worst)}, and `
+      note: `You already hit ${isTimed(ex) ? `${hi} s` : `${hi}s`} — the load is stuck because they cost RPE ${fmt(worst)}, and `
         + `the increment only banks at RPE ${ceiling} or under. Same weight, same reps, but stop `
         + `${10 - ceiling} short of failure. That earns the jump.`,
     };
@@ -294,8 +299,8 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
       reps: target,
       lastWeight,
       note: short
-        ? `Same weight — get ${target} on every set. Only ${working.length} of ${ex.sets} sets were at ${fmtW(lastWeight, ex)} last time; the lighter ones count as warm-ups.`
-        : `Same weight — get ${target} on every set.`,
+        ? `Same weight — get ${unitOfWork(target, ex)} on every set. Only ${working.length} of ${ex.sets} sets were at ${fmtW(lastWeight, ex)} last time; the lighter ones count as warm-ups.`
+        : `Same weight — get ${unitOfWork(target, ex)} on every set.`,
     };
   }
 
@@ -305,7 +310,7 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
     weight: lastWeight,
     reps: lo,
     lastWeight,
-    note: `Repeat ${fmtW(lastWeight, ex)} until all sets reach ${lo}.`,
+    note: `Repeat ${fmtW(lastWeight, ex)} until all sets reach ${unitOfWork(lo, ex)}.`,
   };
 }
 
@@ -335,7 +340,7 @@ function fmt(n) {
 export function describePerformance(perf, exercise = null) {
   if (!perf || !perf.sets.length) return null;
   const w = sessionLoad(perf);
-  const reps = perf.sets.map((s) => s.reps).join(', ');
+  const reps = perf.sets.map((s) => s.reps).join(', ') + (isTimed(exercise) ? ' s' : '');
   const allSame = perf.sets.every((s) => Number(s.weight) === w);
   // A bodyweight lift stores ADDED weight, so 0 means "just bodyweight" — never "0 kg".
   const label = exercise?.unit === 'bodyweight'

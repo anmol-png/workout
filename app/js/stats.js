@@ -5,7 +5,7 @@
  * source of truth (the logged sets) and means changing a formula never requires a migration.
  */
 
-import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES, DAYS, resolveExercise } from './program.js';
+import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES, DAYS, resolveExercise, isTimed } from './program.js';
 import {
   getSessions, getDailyLogs, todayISO, parseISO, daysBetween, historyFor as getHistoryFor,
   getProfile, getSubstitution,
@@ -41,6 +41,10 @@ export function e1RM(weight, reps, rpe = null) {
  * unassisted one, and to a weighted one, on a single axis.
  */
 export function scoreSet(set, exercise = null) {
+  // A 60-second plank is not "60 reps". Epley is meaningless for an isometric hold, and feeding
+  // seconds into it manufactures personal bests out of nothing, so timed work scores zero and is
+  // simply absent from the PR list rather than wrong in it.
+  if (isTimed(exercise)) return 0;
   if (!exercise?.inverted) return e1RM(set.weight, set.reps, set.rpe);
   const bw = Number(getProfile().startingWeightKg) || 0;
   return e1RM(Math.max(0, bw - (Number(set.weight) || 0)), set.reps, set.rpe);

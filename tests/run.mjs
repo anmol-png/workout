@@ -716,6 +716,47 @@ section('Coming back after time off');
   ok('never below the backed-off floor', proj.every((x) => x.reps >= 5));
 }
 
+// ============================================================ timed holds
+section('Timed holds — a plank is seconds, not reps');
+{
+  const { resolveExercise, prescription, isTimed, formatReps } = await import(`${APP}/program.js`);
+  const wheel = getExercise('arms-ab-wheel');
+
+  ok('the programmed exercise is rep-based', !isTimed(wheel));
+  const plank = resolveExercise(wheel, 'Plank');
+  ok('the substitute is timed', isTimed(plank));
+
+  // THE bug: a substitute inherited the parent's rep range, so a plank asked for "8-12 reps".
+  eq('the substitute overrides the range', plank.repRange, [30, 60]);
+  ok('prescription reads in seconds', /30–60 s/.test(prescription(plank)), prescription(plank));
+  ok('the rep-based one does NOT', !/ s/.test(prescription(wheel)), prescription(wheel));
+  eq('formatReps follows the metric', formatReps(45, plank), '45 s');
+  eq('…and stays reps otherwise', formatReps(10, wheel), '10 reps');
+
+  // Progression wording must follow too, or a timed hold is told to "get 45 reps".
+  const hist = [{ date: '2026-09-20', sets: [{ weight: 0, reps: 35, rpe: 8 }, { weight: 0, reps: 32, rpe: 8 }] }];
+  const t = computeNextTarget(hist, plank, '2026-09-22');
+  ok('notes say seconds, never reps', / s\b/.test(t.note) && !/reps/.test(t.note), t.note);
+
+  // Epley on an isometric hold manufactures PRs out of nothing.
+  eq('a timed set scores zero', statsMod.scoreSet({ weight: 10, reps: 60, rpe: 8 }, plank), 0);
+  ok('a normal set still scores', statsMod.scoreSet({ weight: 10, reps: 8, rpe: 8 }, wheel) > 0);
+}
+
+// ============================================================ supersets
+section('Supersets the gym layout cannot support');
+{
+  store.resetAll();
+  ok('paired by default', !store.isSupersetBroken('arms', 'C'));
+  store.setSupersetBroken('arms', 'C', true);
+  ok('can be split', store.isSupersetBroken('arms', 'C'));
+  ok('splitting one group leaves the others paired', !store.isSupersetBroken('arms', 'D'));
+  ok('and is scoped per day', !store.isSupersetBroken('push', 'C'));
+  store.setSupersetBroken('arms', 'C', false);
+  ok('can be paired again', !store.isSupersetBroken('arms', 'C'));
+  store.resetAll();
+}
+
 // ============================================================ inverted lifts
 section('Assisted lifts — the stack is counterweight, so less is harder');
 {

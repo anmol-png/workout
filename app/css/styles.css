@@ -550,3 +550,9 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
   padding-bottom: 2px;
 }
 .pb-group .pb:first-of-type { border-top: none; }
+
+/* A superset the gym's layout can't support — same card stack, but without the "back to back"
+   promise, and visually quieter so it doesn't read as the prescribed pairing. */
+.superset.broken { border-style: dashed; opacity: .96 }
+.superset-badge.muted { background: var(--line); color: var(--text-dim) }
+.superset-head .btn.sm { margin-left: auto }

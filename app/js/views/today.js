@@ -7,7 +7,7 @@
  */
 
 import {
-  DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise,
+  DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise, isTimed,
 } from '../program.js';
 import * as store from '../store.js';
 import {
@@ -124,7 +124,7 @@ export function render(root) {
       group.push(exercises[i]);
       i += 1;
     }
-    html.push(supersetBlock(group, session));
+    html.push(supersetBlock(group, session, dayKey));
   }
 
   // Session footer.
@@ -151,10 +151,24 @@ export function render(root) {
  * Rendered as a single bracketed block with the round spelled out, because a label above three
  * separate cards reads as decoration and gets skipped.
  */
-function supersetBlock(group, session) {
+function supersetBlock(group, session, dayKey) {
   const letter = group[0].supersetGroup;
   const rounds = Math.max(...group.map((e) => e.sets));
   const restAfter = group[group.length - 1].restSec;
+
+  // Broken up: render as ordinary cards, and give every exercise the FULL rest. Left as-is, each
+  // member keeps the ~20 s transition rest meant for walking two steps to the next station, which
+  // on separate floors is not a rest period at all.
+  if (store.isSupersetBroken(dayKey, letter)) {
+    return `<div class="superset broken">
+      <div class="superset-head">
+        <span class="superset-badge muted">${letter} · SPLIT</span>
+        <span class="xs">Straight sets — full rest between each</span>
+        <button class="btn sm ghost" data-rejoin="${letter}">Pair them again</button>
+      </div>
+      ${group.map((e) => exerciseCard({ ...e, restSec: restAfter, _unpaired: true }, session)).join('')}
+    </div>`;
+  }
 
   const steps = group
     .map((e, i) => `<b>${e.order}</b>${i < group.length - 1 ? ` <span class="dim">→ ${e.restSec}s →</span> ` : ''}`)
@@ -164,6 +178,7 @@ function supersetBlock(group, session) {
     <div class="superset-head">
       <span class="superset-badge">SUPERSET ${letter}</span>
       <span class="xs">${group.length} exercises, back to back</span>
+      <button class="btn sm ghost" data-break="${letter}">Can't pair these</button>
     </div>
     <div class="superset-how">
       ${steps} <span class="dim">→ rest ${formatRest(restAfter)} →</span> <b>repeat</b>
@@ -291,9 +306,9 @@ function exerciseCard(baseEx, session) {
         <input type="number" inputmode="decimal" step="${U.step(ex.id)}" data-f="weight"
           placeholder="${isBW ? 'BW' : (target.weight != null ? U.snapNum(target.weight, ex) : U.unitFor(ex.id))}"
           value="${s.weight == null ? '' : U.num(s.weight, ex.id)}" aria-label="Set ${i + 1} weight">
-        <input type="number" inputmode="numeric" step="1" data-f="reps"
+        <input type="number" inputmode="numeric" step="${isTimed(ex) ? 5 : 1}" data-f="reps"
           placeholder="${projection[i]?.reps ?? target.reps ?? ex.repRange[0]}"
-          value="${s.reps ?? ''}" aria-label="Set ${i + 1} reps">
+          value="${s.reps ?? ''}" aria-label="Set ${i + 1} ${isTimed(ex) ? 'seconds' : 'reps'}">
         <input type="number" inputmode="decimal" step="0.5" min="5" max="10" data-f="rpe"
           placeholder="RPE ${ex.rpe[1]}"
           value="${s.rpe ?? ''}" aria-label="Set ${i + 1} RPE">
@@ -327,12 +342,12 @@ function exerciseCard(baseEx, session) {
           : escapeHtml(target.note)}</span>
       </div>
       <div class="ex-proj">
-        Expect <b>${describeProjection(projection)}</b>
+        Expect <b>${describeProjection(projection)}${isTimed(ex) ? ' s' : ''}</b>
         <span class="dim">· ${projection[0].note === 'from your history' ? 'from your own drop-off' : 'estimated'}</span>
       </div>
       <div class="sets">
         <div class="sets-head"><span></span><span>${isBW ? `+${U.unitFor(ex.id)}`
-          : ex.unit === 'dumbbell' ? `${U.unitFor(ex.id)} ea` : U.unitFor(ex.id)}</span><span>reps</span><span>rpe</span><span></span></div>
+          : ex.unit === 'dumbbell' ? `${U.unitFor(ex.id)} ea` : U.unitFor(ex.id)}</span><span>${isTimed(ex) ? 'sec' : 'reps'}</span><span>rpe</span><span></span></div>
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}
@@ -360,6 +375,17 @@ function wire(root, session, exercises) {
   });
 
   root.addEventListener('click', (e) => {
+    const brk = e.target.closest('[data-break], [data-rejoin]');
+    if (brk) {
+      const letter = brk.dataset.break || brk.dataset.rejoin;
+      const broken = Boolean(brk.dataset.break);
+      store.setSupersetBroken(selectedDay, letter, broken);
+      rerender();
+      return toast(broken
+        ? 'Split — full rest between each, and they stay split'
+        : 'Paired again');
+    }
+
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     const act = btn.dataset.act;

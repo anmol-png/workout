@@ -573,7 +573,7 @@ export const EXERCISES = [
       'Ribs down, glutes squeezed. Roll only as far as you can go without the lower back sagging.',
       'From the knees. Never let the hips lead.',
     ],
-    substitutes: ['Barbell Rollout', 'Plank', 'Long-lever Plank'],
+    substitutes: ['Barbell Rollout', 'Plank', 'Long-lever Plank', 'Side Plank', 'Hollow Body Hold'],
   },
 ];
 
@@ -665,8 +665,11 @@ const SUBSTITUTE_META = {
   'Lying Leg Raise': { unit: 'bodyweight', startLoad: 0 },
   'Captain\u2019s Chair Knee Raise': { unit: 'bodyweight', startLoad: 0 },
   'Barbell Rollout': { unit: 'bodyweight', startLoad: 0 },
-  'Plank': { unit: 'bodyweight', startLoad: 0 },
-  'Long-lever Plank': { unit: 'bodyweight', startLoad: 0 },
+  'Plank': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [30, 60] },
+  'Long-lever Plank': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [20, 45] },
+  'Side Plank': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [30, 60] },
+  'Hollow Body Hold': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [20, 45] },
+  'Dead Hang': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [30, 60] },
   'Decline Sit-up': { unit: 'bodyweight', startLoad: 0 },
   'Bike Intervals': { unit: 'none', startLoad: null },
   'Incline Treadmill': { unit: 'none', startLoad: null },
@@ -697,6 +700,11 @@ export function resolveExercise(ex, subName) {
     startLoad: 'startLoad' in meta ? meta.startLoad : ex.startLoad,
     increment: meta.increment ?? INCREMENT_BY_UNIT[unit] ?? ex.increment,
     inverted: meta.inverted ?? ex.inverted ?? false,
+    // A substitute can change the UNIT OF WORK, not just the equipment. Swapping an ab wheel for
+    // a plank turns 8–12 reps into 30–60 seconds; without these two overrides the plank inherits
+    // the wheel's rep range and the app asks for "8–12 reps" of an isometric hold.
+    metric: meta.metric ?? ex.metric ?? 'reps',
+    repRange: meta.repRange ?? ex.repRange,
     _substituted: true,
   };
 }
@@ -729,7 +737,22 @@ export function prescription(ex) {
   const [rlo, rhi] = ex.rpe;
   const reps = lo === hi ? `${lo}` : `${lo}–${hi}`;
   const rpe = rlo === rhi ? `${rlo}` : `${rlo}–${rhi}`;
-  return `${ex.sets} × ${reps}${ex.perSide ? '/leg' : ''} @ RPE ${rpe}`;
+  return `${ex.sets} × ${reps}${isTimed(ex) ? ' s' : ''}${ex.perSide ? '/leg' : ''} @ RPE ${rpe}`;
+}
+
+/** Is this exercise measured in seconds held rather than reps performed? */
+export function isTimed(ex) {
+  return ex?.metric === 'time';
+}
+
+/** The word for one unit of work on this exercise — drives every label in the UI. */
+export function repWord(ex, n = 2) {
+  return isTimed(ex) ? 's' : (n === 1 ? 'rep' : 'reps');
+}
+
+/** "45 s" or "12 reps". */
+export function formatReps(n, ex) {
+  return isTimed(ex) ? `${n} s` : `${n} rep${n === 1 ? '' : 's'}`;
 }
 
 /** Nutrition targets from program/06-Nutrition.md — shown on the Nutrition view. */

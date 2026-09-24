@@ -6,7 +6,7 @@
  * you ACTUALLY did rather than the one the program originally prescribed.
  */
 
-import { getDay, getExercise, resolveExercise } from '../program.js';
+import { getDay, getExercise, resolveExercise, isTimed, formatReps } from '../program.js';
 import * as store from '../store.js';
 import {
   sessionVolume, sessionSetCount, currentStreak, weekStart, weeklySetCounts, bestE1RM, bestSet,
@@ -120,7 +120,7 @@ function showSession(id) {
       return `<tr${isBest ? ' class="best"' : ''}>
         <td class="dim">${i + 1}</td>
         <td><b>${loadLabel(x.weight, ex)}</b></td>
-        <td>${x.reps} reps</td>
+        <td>${formatReps(x.reps, ex)}</td>
         <td class="muted">${x.rpe ? `RPE ${x.rpe}` : '—'}</td>
         <td>${isBest ? '<span class="pill pr">best</span>' : ''}</td>
       </tr>`;
@@ -132,7 +132,7 @@ function showSession(id) {
     return `<div class="sess-ex">
       <div class="row between">
         <b class="small">${escapeHtml(ex.name)}</b>
-        <span class="xs dim">${sets.length} sets · ${totalReps} reps${vol ? ` · ${U.volume(vol)}` : ''}</span>
+        <span class="xs dim">${sets.length} sets · ${isTimed(ex) ? `${totalReps} s` : `${totalReps} reps`}${vol ? ` · ${U.volume(vol)}` : ''}</span>
       </div>
       <table class="sess-tbl">${rows}</table>
     </div>`;
@@ -195,7 +195,7 @@ function sessionText(s) {
       const w = ex.unit === 'bodyweight'
         ? ((Number(x.weight) || 0) > 0 ? `BW+${U.num(x.weight, ex.id)}` : 'BW')
         : `${U.num(x.weight, ex.id)}${U.unitFor(ex.id)}`;
-      return `${w}×${x.reps}${x.rpe ? `@${x.rpe}` : ''}`;
+      return `${w}×${x.reps}${isTimed(ex) ? 's' : ''}${x.rpe ? `@${x.rpe}` : ''}`;
     }).join(', ');
     lines.push(`${ex.order}. ${ex.name} — ${txt}`);
   }
