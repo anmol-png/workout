@@ -35,6 +35,7 @@ export const WARMUP = {
     ['Leg swings × 10/leg, front-back and side-side', 'Opens the hips for depth'],
     ['Bodyweight squats × 12, slow, full depth', 'Grooves the pattern, mobilises ankles and hips'],
     ['Glute bridges × 15', 'CRITICAL — activates glutes so they fire during the squat instead of letting quads and lower back take over'],
+    ['Empty bar: 5 high pulls, then 5 hang cleans', 'Cleans are a skill before they are a lift — rehearse the catch with nothing on the bar, every single session'],
   ],
   upper: [
     ['3 min easy bike or rower', 'Core temperature and blood flow'],

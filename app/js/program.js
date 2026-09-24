@@ -204,7 +204,28 @@ export const EXERCISES = [
 
   // ---------------------------------------------------------------- LEGS
   {
-    id: 'back-squat', day: 'legs', order: 'A', name: 'Barbell Back Squat',
+    id: 'hang-power-clean', day: 'legs', order: 'A', name: 'Hang Power Clean',
+    // Counted as SECONDARY only, and deliberately. Five sets of three at RPE 6–7 is fifteen
+    // submaximal explosive reps — real posterior-chain stimulus, but nowhere near what five hard
+    // sets of RDLs do. Counting it as primary would inflate the hamstring and glute totals into
+    // the top of their bands on paper while changing almost nothing in the gym, which is exactly
+    // the kind of self-deception the volume chart exists to prevent.
+    muscles: { primary: [], secondary: ['hamstrings', 'glutes', 'quads'] },
+    sets: 5, repRange: [3, 3], rpe: [6, 7], restSec: 150,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 40,
+    cues: [
+      'A POWER lift, not a strength lift. It is never taken near failure — the moment bar speed',
+      'drops, the set is over, because slow reps train the opposite of what this is for.',
+      'From the HANG: bar at mid-thigh, chest over the bar, shoulders back.',
+      'Violently extend hips, knees and ankles. The arms do not pull — they only guide.',
+      'Catch in a QUARTER squat with the elbows whipped through and high. Not a full front squat.',
+      'Three reps a set, five sets. Light enough that every rep looks identical.',
+      'Stop the day you cannot keep the bar path vertical — that is the real progression signal.',
+    ],
+    substitutes: ['Hang Power Snatch', 'Kettlebell Swing', 'Dumbbell Hang Clean', 'Trap-Bar Deadlift'],
+  },
+  {
+    id: 'back-squat', day: 'legs', order: 'B', name: 'Barbell Back Squat',
     muscles: { primary: ['quads'], secondary: ['glutes', 'hamstrings', 'core'] },
     sets: 4, repRange: [5, 8], rpe: [7, 8], restSec: 180,
     increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 45,
@@ -217,7 +238,7 @@ export const EXERCISES = [
     substitutes: ['Front Squat', 'Hack Squat', 'Safety Bar Squat'],
   },
   {
-    id: 'rdl', day: 'legs', order: 'B', name: 'Romanian Deadlift',
+    id: 'rdl', day: 'legs', order: 'C', name: 'Romanian Deadlift',
     muscles: { primary: ['hamstrings'], secondary: ['glutes', 'back'] },
     sets: 3, repRange: [8, 10], rpe: [8, 8], restSec: 120,
     increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 50,
@@ -227,10 +248,10 @@ export const EXERCISES = [
       'Bar stays close to the legs. Back flat — NEVER rounded.',
       'Lower to a strong hamstring stretch. Don’t chase depth by rounding.',
     ],
-    substitutes: ['Dumbbell RDL', 'Good Morning', '45° Back Extension'],
+    substitutes: ['Conventional Deadlift', 'Trap-Bar Deadlift', 'Dumbbell RDL', 'Good Morning', '45° Back Extension'],
   },
   {
-    id: 'leg-press', day: 'legs', order: 'C', name: 'Leg Press',
+    id: 'leg-press', day: 'legs', order: 'D', name: 'Leg Press',
     muscles: { primary: ['quads'], secondary: ['glutes'] },
     sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 90,
     increment: INCREMENT.LEGPRESS, unit: 'machine', startLoad: 100,
@@ -243,7 +264,7 @@ export const EXERCISES = [
     substitutes: ['Hack Squat', 'Pendulum Squat', 'Walking Lunges'],
   },
   {
-    id: 'seated-leg-curl', day: 'legs', order: 'D1', supersetGroup: 'D', name: 'Seated Leg Curl',
+    id: 'seated-leg-curl', day: 'legs', order: 'E1', supersetGroup: 'D', name: 'Seated Leg Curl',
     muscles: { primary: ['hamstrings'], secondary: [] },
     sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 20,
     increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
@@ -254,7 +275,7 @@ export const EXERCISES = [
     substitutes: ['Lying Leg Curl', 'Nordic Curl'],
   },
   {
-    id: 'standing-calf-raise', day: 'legs', order: 'D2', supersetGroup: 'D', name: 'Standing Calf Raise',
+    id: 'standing-calf-raise', day: 'legs', order: 'E2', supersetGroup: 'D', name: 'Standing Calf Raise',
     muscles: { primary: ['calves'], secondary: [] },
     sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 75,
     increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
@@ -581,6 +602,10 @@ const SUBSTITUTE_META = {
   'Barbell Curl': { unit: 'barbell', startLoad: 20 },
   'EZ-Bar Preacher Curl': { unit: 'barbell', startLoad: 15 },
   'Trap-Bar Deadlift': { unit: 'barbell', startLoad: 60 },
+  'Conventional Deadlift': { unit: 'barbell', startLoad: 70 },
+  'Hang Power Snatch': { unit: 'barbell', startLoad: 25 },
+  'Dumbbell Hang Clean': { unit: 'dumbbell', startLoad: 12 },
+  'Kettlebell Swing': { unit: 'dumbbell', startLoad: 16 },
 
   // → dumbbell
   'Dumbbell Bench Press': { unit: 'dumbbell', startLoad: 18 },

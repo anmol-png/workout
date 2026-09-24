@@ -274,6 +274,7 @@ function exerciseCard(baseEx, session) {
 
   // Bodyweight lifts log ADDED weight, so the column means "+kg" and blank means bodyweight.
   const isBW = ex.unit === 'bodyweight';
+  const reading = store.getExerciseConfig(ex.id)?.reading || '';
 
   const hintClass = target.action === ACTION.ADD_LOAD ? 'up'
     : (target.action === ACTION.STALL || target.action === ACTION.RETURN) ? 'stall' : '';
@@ -314,9 +315,10 @@ function exerciseCard(baseEx, session) {
     </div>
 
     ${ex.isFinisher ? '' : `
-      ${ex.unit === 'dumbbell' || ex.perSide ? `<div class="ex-note">
+      ${ex.unit === 'dumbbell' || ex.perSide || reading ? `<div class="ex-note">
         ${ex.unit === 'dumbbell' ? 'Log the weight of <b>one</b> dumbbell.' : ''}
         ${ex.perSide ? 'Reps are <b>per side</b> — do the same both sides.' : ''}
+        ${reading ? `<b>${escapeHtml(reading)}</b>` : ''}
       </div>` : ''}
       <div class="ex-hint ${hintClass}">
         <span>${hintIcon}</span>
@@ -448,6 +450,40 @@ function updateSetField(input, session) {
   set[input.dataset.f] = (raw != null && input.dataset.f === 'weight')
     ? U.toKg(raw, row.dataset.ex) : raw;
   store.upsertSession(session);
+
+  if (input.dataset.f === 'weight' && set.weight != null) checkPlausible(set.weight, row.dataset.ex, session);
+}
+
+/**
+ * Catch a misread machine at the moment it happens.
+ *
+ * Gyms label equipment ambiguously — a plate marked 21.5 on a pair, a stack listing both kg and
+ * lb, a machine loaded one side at a time. The failure is not that any single reading is wrong,
+ * it is that the SAME machine gets read two different ways across sessions. That silently
+ * corrupts every target computed from it, and it is invisible weeks later when the damage shows.
+ *
+ * It is caught here instead of being auto-corrected because only the athlete standing at the
+ * machine can say which reading is right. A genuinely light day is a real thing; so is a misread
+ * plate. The app's job is to notice the discrepancy, not to overrule it.
+ */
+function checkPlausible(kg, exId, session) {
+  const base = getExercise(exId);
+  if (!base) return;
+  const ex = resolved(base);
+  const loads = historyOf(ex, session)
+    .flatMap((h) => h.sets.map((x) => Number(x.weight) || 0))
+    .filter((w) => w > 0)
+    .sort((a, b) => a - b);
+  if (loads.length < 3) return;                       // not enough to know what "usual" means
+
+  const median = loads[Math.floor(loads.length / 2)];
+  const ratio = kg / median;
+  if (ratio >= 0.6 && ratio <= 1.7) return;
+
+  const usual = U.w(median, exId);
+  toast(ratio < 0.6
+    ? `That's about ${ratio < 0.58 ? 'half' : 'well under'} your usual ${usual} — logging one side?`
+    : `That's well over your usual ${usual} — counting both plates?`);
 }
 
 function toggleSet(row, session) {
@@ -583,9 +619,21 @@ function showInfo(ex) {
       </div>
     </div>
     <div class="divider"></div>
+    <b class="small">How this machine is labelled</b>
+    <div class="xs muted mb">The thing that actually breaks progression is reading the SAME machine
+      two different ways on two different days. Write down the rule once — e.g. "two plates marked
+      21.5, log 43" or "one side only" — and it shows on the card every session.</div>
+    <input class="input mb" id="ex-reading" type="text" maxlength="60" placeholder="e.g. plates sum — 21.5 + 21.5 = 43"
+      value="${escapeHtml(store.getExerciseConfig(ex.id)?.reading || '')}">
+    <div class="divider"></div>
     <p class="xs muted">Substitutes: ${ex.substitutes.map(escapeHtml).join(' · ') || '—'}</p>
     <p class="xs muted mt">Trains: ${[...ex.muscles.primary, ...ex.muscles.secondary].join(', ') || '—'}</p>
   `, (sheet) => {
+    sheet.querySelector('#ex-reading').addEventListener('change', (e) => {
+      store.setExerciseConfig(ex.id, { reading: e.target.value.trim() || null });
+      rerender();
+      toast(e.target.value.trim() ? 'Noted — it shows on the card' : 'Note cleared');
+    });
     sheet.querySelectorAll('#ex-unit button').forEach((b) => {
       b.addEventListener('click', () => {
         store.setExerciseUnit(ex.id, b.dataset.eu || null);

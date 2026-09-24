@@ -10,7 +10,7 @@
 
 | Day | Session | Emphasis | Finisher |
 |---|---|---|---|
-| **Mon** | [Legs](03-Legs.md) | Quad-dominant, squat anchor | Sled / bike, 5 min |
+| **Mon** | [Legs](03-Legs.md) | Hang power clean, squat anchor | Sled / bike, 5 min |
 | **Tue** | [Push](01-Push.md) | Chest, delts, triceps | — |
 | **Wed** | [Pull](02-Pull.md) | Back, rear delts, biceps | — |
 | **Thu** | Rest | Walk, 8–10k steps | — |

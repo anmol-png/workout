@@ -39,7 +39,7 @@ const section = (s) => console.log(`\n${s}`);
 // ============================================================ program integrity
 section('Program data');
 {
-  ok('41 exercises (incl. 2 finishers + optional Arms & Core)', EXERCISES.length === 41, `got ${EXERCISES.length}`);
+  ok('42 exercises (incl. 2 finishers + optional Arms & Core)', EXERCISES.length === 42, `got ${EXERCISES.length}`);
   const ids = EXERCISES.map((e) => e.id);
   eq('all exercise ids unique', ids.length - new Set(ids).size, 0);
   eq('6 sessions available', DAYS.length, 6);

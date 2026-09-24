@@ -17,7 +17,7 @@ everything you do.
 
 | Day | Session | Emphasis |
 |---|---|---|
-| **Mon** | [Legs](program/03-Legs.md) | Quad-dominant, squat anchor · + finisher |
+| **Mon** | [Legs](program/03-Legs.md) | Hang power clean, squat anchor · + finisher |
 | **Tue** | [Push](program/01-Push.md) | Chest, delts, triceps |
 | **Wed** | [Pull](program/02-Pull.md) | Back, rear delts, biceps |
 | **Thu** | Rest | Walk |

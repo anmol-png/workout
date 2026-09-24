@@ -123,6 +123,18 @@ const WEIGHT_CORRECTIONS = [
   { date: '2026-08-29', exerciseId: 'arms-ez-curl', factor: 2 },
 ];
 
+/**
+ * Labelling rules recovered from the athlete's own session notes, seeded once so the convention
+ * lives on the exercise card instead of in a note nobody re-reads.
+ */
+const READING_NOTES = {
+  'seated-cable-row': 'Two plates marked 21.5 — they sum. Log 43, not 21.5',
+  'arms-ez-curl': 'Bar is marked per side — double it (25+25 = 50)',
+  'incline-db-press': 'Single arm — log the one side you pressed',
+  'chest-supported-row': 'Single side at a time — log the one side',
+  'leg-press': 'The 130 already includes the 40 lb sled',
+};
+
 /** Applies the two schema-2 repairs. Idempotent: re-running changes nothing. */
 function repairV2(sessions) {
   const report = { split: 0, corrected: 0 };
@@ -203,6 +215,11 @@ function migrate(data) {
     } catch { /* quota — the repair still runs, it just can't be rolled back */ }
   }
   merged.sessions = repairV2(merged.sessions);
+  if ((data.schemaVersion || 1) < 2) {
+    for (const [id, reading] of Object.entries(READING_NOTES)) {
+      if (!merged.exerciseConfig[id]) merged.exerciseConfig[id] = { reading };
+    }
+  }
 
   merged.schemaVersion = SCHEMA_VERSION;
   return merged;
