@@ -342,7 +342,7 @@ export const EXERCISES = [
       'Chest pad removes the lower back entirely — no spinal fatigue two days before Lower.',
       'Peeling off the pad? Too heavy.',
     ],
-    substitutes: ['T-Bar Row', 'Seal Row', 'Machine Row'],
+    substitutes: ['Single-arm High Row', 'Chest-Supported High Row', 'T-Bar Row', 'Seal Row', 'Machine Row', 'Single-arm Cable Row'],
   },
   {
     id: 'db-lateral-raise', day: 'upper', order: 'D1', supersetGroup: 'D', name: 'DB Lateral Raise',
@@ -635,6 +635,10 @@ const SUBSTITUTE_META = {
   'Neutral-grip Pulldown': { unit: 'machine', startLoad: 45 },
   'Chest-Supported Row': { unit: 'machine', startLoad: 35 },
   'Chest-Supported Machine Row': { unit: 'machine', startLoad: 35 },
+  // Pulled from ABOVE, down and back, chest against the pad — a high row, not a horizontal one.
+  // Same muscles, steeper angle, and most of these machines are worked one arm at a time.
+  'Chest-Supported High Row': { unit: 'machine', startLoad: 35 },
+  'Single-arm High Row': { unit: 'machine', startLoad: 20 },
   'Machine Row': { unit: 'machine', startLoad: 35 },
   'Pec Deck Fly': { unit: 'machine', startLoad: 57.5 },
   'Cable Fly': { unit: 'machine', startLoad: 12 },
@@ -737,7 +741,11 @@ export function prescription(ex) {
   const [rlo, rhi] = ex.rpe;
   const reps = lo === hi ? `${lo}` : `${lo}–${hi}`;
   const rpe = rlo === rhi ? `${rlo}` : `${rlo}–${rhi}`;
-  return `${ex.sets} × ${reps}${isTimed(ex) ? ' s' : ''}${ex.perSide ? '/leg' : ''} @ RPE ${rpe}`;
+  const LEGS = ['quads', 'hamstrings', 'glutes', 'calves'];
+  const side = ex.perSide
+    ? (ex.muscles.primary.some((m) => LEGS.includes(m)) ? '/leg' : '/side')
+    : '';
+  return `${ex.sets} × ${reps}${isTimed(ex) ? ' s' : ''}${side} @ RPE ${rpe}`;
 }
 
 /** Is this exercise measured in seconds held rather than reps performed? */

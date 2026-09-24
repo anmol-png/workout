@@ -564,3 +564,9 @@ i.sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .set.is-drop input { background: transparent; border-style: dashed }
 .sess-tbl tr.drop td { opacity: .78 }
 .sess-tbl tr.drop td:first-child { color: var(--accent) }
+
+/* The set number doubles as its options button — per-set unit, drop, clear. */
+button.set-n { background: none; border: 0; padding: 0; min-height: 42px; width: 100%;
+  display: grid; place-items: center; line-height: 1.05; cursor: pointer }
+button.set-n:active { opacity: .6 }
+.set-u { font-size: 9px; font-weight: 800; letter-spacing: .04em; color: var(--accent); text-transform: uppercase }

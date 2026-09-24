@@ -33,10 +33,13 @@ function doneSets(entry) {
 }
 
 /** "70 lb" · "BW" · "BW+5 kg" */
-function loadLabel(kg, ex) {
+function loadLabel(kg, ex, set = null) {
   const n = Number(kg) || 0;
-  if (ex.unit === 'bodyweight') return n > 0 ? `BW+${U.num(n, ex.id)}` : 'BW';
-  return `${U.num(n, ex.id)} ${U.unitFor(ex.id)}`;
+  // A set logged in the other unit is shown in the unit it was PERFORMED in — that is the number
+  // written on the equipment that day, and the only one that means anything when you read it back.
+  const u = U.unitForSet(set, ex.id);
+  if (ex.unit === 'bodyweight') return n > 0 ? `BW+${U.num(n, ex.id, u)}` : 'BW';
+  return `${U.num(n, ex.id, u)} ${u}`;
 }
 
 export function render(root) {
@@ -121,7 +124,7 @@ function showSession(id) {
       if (!x.isDrop) setNo += 1;
       return `<tr${isBest ? ' class="best"' : ''}${x.isDrop ? ' class="drop"' : ''}>
         <td class="dim">${x.isDrop ? '↳' : setNo}</td>
-        <td><b>${loadLabel(x.weight, ex)}</b></td>
+        <td><b>${loadLabel(x.weight, ex, x)}</b></td>
         <td>${formatReps(x.reps, ex)}</td>
         <td class="muted">${x.rpe ? `RPE ${x.rpe}` : '—'}</td>
         <td>${isBest ? '<span class="pill pr">best</span>' : ''}</td>
@@ -195,9 +198,10 @@ function sessionText(s) {
     const sets = doneSets(entry);
     if (!sets.length) continue;
     const txt = sets.map((x) => {
+      const u = U.unitForSet(x, ex.id);
       const w = ex.unit === 'bodyweight'
-        ? ((Number(x.weight) || 0) > 0 ? `BW+${U.num(x.weight, ex.id)}` : 'BW')
-        : `${U.num(x.weight, ex.id)}${U.unitFor(ex.id)}`;
+        ? ((Number(x.weight) || 0) > 0 ? `BW+${U.num(x.weight, ex.id, u)}` : 'BW')
+        : `${U.num(x.weight, ex.id, u)}${u}`;
       return `${x.isDrop ? '↳' : ''}${w}×${x.reps}${isTimed(ex) ? 's' : ''}${x.rpe ? `@${x.rpe}` : ''}`;
     }).join(', ');
     lines.push(`${ex.order}. ${ex.name} — ${txt}`);

@@ -36,9 +36,19 @@ export function subtitle() {
   return d ? `${d.subtitle} · Week ${week}` : 'Rest day';
 }
 
-/** The exercise as it actually is today — substitution applied, so equipment is correct. */
+/**
+ * The exercise as it actually is today — substitution applied, then the athlete's own logging
+ * config folded in.
+ *
+ * `singleArm` is a setting rather than program data because it is a property of THIS GYM'S
+ * equipment, not of the movement. A chest-supported row is bilateral on one machine and one arm
+ * at a time on another, and 25 of the exercises here could be either. Guessing would be wrong
+ * about half the time; asking once per machine is right forever.
+ */
 function resolved(ex) {
-  return resolveExercise(ex, store.getSubstitution(ex.id));
+  const r = resolveExercise(ex, store.getSubstitution(ex.id));
+  const cfg = store.getExerciseConfig(ex.id);
+  return cfg?.singleArm ? { ...r, perSide: true, singleArm: true } : r;
 }
 
 function defaultDay() {
@@ -314,10 +324,12 @@ function exerciseCard(baseEx, session) {
     if (i >= ex.sets && !drop && !(s.reps > 0)) continue;   // don't render empty trailing rows
     rows.push(`
       <div class="set ${drop ? 'is-drop' : ''} ${s.reps > 0 ? 'logged' : ''} ${s.done ? 'done' : ''} ${s.isPR ? 'pr' : ''}" data-ex="${ex.id}" data-i="${i}">
-        <span class="set-n">${drop ? '↳' : (s.isPR ? '★' : workingNo)}</span>
-        <input type="number" inputmode="decimal" step="${U.step(ex.id)}" data-f="weight"
+        <button class="set-n" data-act="setopts" aria-label="Options for ${drop ? 'drop' : 'set'} ${workingNo}"
+          >${drop ? '↳' : (s.isPR ? '★' : workingNo)}${s.unit ? `<span class="set-u">${s.unit}</span>` : ''}</button>
+        <input type="number" inputmode="decimal" step="${U.step(ex.id, s.unit)}" data-f="weight"
           placeholder="${isBW ? 'BW' : (target.weight != null ? U.snapNum(target.weight, ex) : U.unitFor(ex.id))}"
-          value="${s.weight == null ? '' : U.num(s.weight, ex.id)}" aria-label="${drop ? 'Drop' : 'Set'} ${workingNo} weight">
+          value="${s.weight == null ? '' : U.num(s.weight, ex.id, s.unit)}"
+          aria-label="${drop ? 'Drop' : 'Set'} ${workingNo} weight in ${U.unitForSet(s, ex.id)}">
         <input type="number" inputmode="numeric" step="${isTimed(ex) ? 5 : 1}" data-f="reps"
           placeholder="${projection[i]?.reps ?? target.reps ?? ex.repRange[0]}"
           value="${s.reps ?? ''}" aria-label="${drop ? 'Drop' : 'Set'} ${workingNo} ${isTimed(ex) ? 'seconds' : 'reps'}">
@@ -344,7 +356,8 @@ function exerciseCard(baseEx, session) {
     ${ex.isFinisher ? '' : `
       ${ex.unit === 'dumbbell' || ex.perSide || reading ? `<div class="ex-note">
         ${ex.unit === 'dumbbell' ? 'Log the weight of <b>one</b> dumbbell.' : ''}
-        ${ex.perSide ? 'Reps are <b>per side</b> — do the same both sides.' : ''}
+        ${ex.singleArm ? '<b>One arm at a time</b> — log that arm\'s weight. Reps are per side.'
+          : ex.perSide ? 'Reps are <b>per side</b> — do the same both sides.' : ''}
         ${reading ? `<b>${escapeHtml(reading)}</b>` : ''}
       </div>` : ''}
       <div class="ex-hint ${hintClass}">
@@ -408,6 +421,7 @@ function wire(root, session, exercises) {
     const setRow = btn.closest('.set');
 
     if (act === 'toggle' && setRow) return toggleSet(setRow, session);
+    if (act === 'setopts' && setRow && ex) return showSetOptions(setRow, ex, session);
     if (act === 'info' && ex) return showInfo(ex);
     if (act === 'plates' && ex) return showPlates(ex, session);
     if (act === 'drop' && ex) return addDrop(ex, session);
@@ -488,7 +502,7 @@ function updateSetField(input, session) {
   // Weight arrives in the display unit; everything is stored in kg.
   const raw = input.value === '' ? null : Number(input.value);
   set[input.dataset.f] = (raw != null && input.dataset.f === 'weight')
-    ? U.toKg(raw, row.dataset.ex) : raw;
+    ? U.toKg(raw, row.dataset.ex, set.unit) : raw;
   store.upsertSession(session);
 
   if (input.dataset.f === 'weight' && set.weight != null) checkPlausible(set.weight, row.dataset.ex, session);
@@ -546,7 +560,7 @@ function toggleSet(row, session) {
   const inputs = row.querySelectorAll('input');
   inputs.forEach((inp) => {
     const v = inp.value === '' ? null : Number(inp.value);
-    if (v != null) set[inp.dataset.f] = inp.dataset.f === 'weight' ? U.toKg(v, exId) : v;
+    if (v != null) set[inp.dataset.f] = inp.dataset.f === 'weight' ? U.toKg(v, exId, set.unit) : v;
   });
 
   if (set.reps == null) {
@@ -557,7 +571,7 @@ function toggleSet(row, session) {
     // placeholder told you to load, not a number the equipment can't make.
     if (set.weight == null && t.weight != null) set.weight = U.toKg(U.snap(t.weight, ex), ex.id);
     row.querySelector('[data-f="reps"]').value = set.reps;
-    if (set.weight != null) row.querySelector('[data-f="weight"]').value = U.num(set.weight, exId);
+    if (set.weight != null) row.querySelector('[data-f="weight"]').value = U.num(set.weight, exId, set.unit);
   }
 
   set.done = true;
@@ -597,13 +611,74 @@ function toggleSet(row, session) {
  *
  * Default is ~20% off, the usual drop-set reduction and about what lets you finish the range.
  */
-function addDrop(baseEx, session) {
+/**
+ * Per-set options, opened from the set number.
+ *
+ * The unit lives here rather than on the row because it is rare — most sets use the exercise's
+ * unit — but when it is needed there is no way around it: a gym stocking both kg and lb dumbbells
+ * will eventually have the 30 lb pair in use, and set three gets done with 14 kg. The alternative
+ * is converting in your head at the moment you are least able to, which is where bad data
+ * comes from.
+ */
+function showSetOptions(row, ex, session) {
+  const i = Number(row.dataset.i);
+  const entry = entryFor(session, ex.id);
+  const set = setAt(entry, i);
+  const active = set.unit || '';
+  const exUnit = U.unitFor(ex.id);
+
+  openSheet(`
+    <h2>${set.isDrop ? 'Drop' : 'Set'} ${i + 1}</h2>
+    <p class="sheet-sub">${escapeHtml(ex.name)}</p>
+    <b class="small">Units for this set only</b>
+    <div class="xs muted mb">Use this when the plates or dumbbells you wanted weren't free and you
+      did the set in the other unit. Everything is stored in kilograms either way, so your history
+      and targets stay comparable.</div>
+    <div class="unit-toggle mb" id="set-unit">
+      <button data-su="" aria-pressed="${!active}">Auto (${exUnit})</button>
+      <button data-su="kg" aria-pressed="${active === 'kg'}">kg</button>
+      <button data-su="lb" aria-pressed="${active === 'lb'}">lb</button>
+    </div>
+    <div class="divider"></div>
+    ${set.isDrop ? '' : '<button class="btn full ghost mb" data-sa="drop">Add a drop after this set</button>'}
+    <button class="btn full danger" data-sa="clear">Clear this ${set.isDrop ? 'drop' : 'set'}</button>
+  `, (sheet) => {
+    sheet.querySelectorAll('#set-unit button').forEach((b) => {
+      b.addEventListener('click', () => {
+        // The stored kilograms never change — only how this one set is read and written.
+        set.unit = b.dataset.su || null;
+        if (!set.unit) delete set.unit;
+        store.upsertSession(session);
+        window.__closeSheet();
+        rerender();
+        toast(b.dataset.su ? `This set logs in ${b.dataset.su}` : `Back to ${exUnit}`);
+      });
+    });
+    sheet.querySelector('[data-sa="drop"]')?.addEventListener('click', () => {
+      window.__closeSheet();
+      addDrop(ex, session, i);
+    });
+    sheet.querySelector('[data-sa="clear"]').addEventListener('click', () => {
+      if (set.isDrop) entry.sets.splice(i, 1);
+      else Object.assign(set, { weight: null, reps: null, rpe: null, done: false, isPR: false });
+      store.upsertSession(session);
+      window.__closeSheet();
+      rerender();
+      toast('Cleared');
+    });
+  });
+}
+
+function addDrop(baseEx, session, afterIndex = null) {
   const ex = resolved(baseEx);
   const entry = entryFor(session, ex.id);
 
   // Attach to the last row carrying reps — that is the set you just failed on.
-  let anchor = -1;
-  entry.sets.forEach((x, i) => { if ((x.reps || 0) > 0) anchor = i; });
+  let anchor = afterIndex;
+  if (anchor == null) {
+    anchor = -1;
+    entry.sets.forEach((x, i) => { if ((x.reps || 0) > 0) anchor = i; });
+  }
   if (anchor < 0) return toast('Log the set you fell short on first, then add the drop');
 
   const parent = entry.sets[anchor];
@@ -694,6 +769,18 @@ function showInfo(ex) {
       </div>
     </div>
     <div class="divider"></div>
+    <div class="row between">
+      <div class="grow">
+        <b class="small">One arm / one leg at a time</b>
+        <div class="xs muted">Turn this on for a machine you work unilaterally. The weight you log
+          stays the weight on that side — the number you actually set — and reps count per side.</div>
+      </div>
+      <div class="unit-toggle" id="ex-single">
+        <button data-sa="" aria-pressed="${!store.getExerciseConfig(ex.id)?.singleArm}">Both</button>
+        <button data-sa="1" aria-pressed="${!!store.getExerciseConfig(ex.id)?.singleArm}">One side</button>
+      </div>
+    </div>
+    <div class="divider"></div>
     <b class="small">How this machine is labelled</b>
     <div class="xs muted mb">The thing that actually breaks progression is reading the SAME machine
       two different ways on two different days. Write down the rule once — e.g. "two plates marked
@@ -704,6 +791,14 @@ function showInfo(ex) {
     <p class="xs muted">Substitutes: ${ex.substitutes.map(escapeHtml).join(' · ') || '—'}</p>
     <p class="xs muted mt">Trains: ${[...ex.muscles.primary, ...ex.muscles.secondary].join(', ') || '—'}</p>
   `, (sheet) => {
+    sheet.querySelectorAll('#ex-single button').forEach((b) => {
+      b.addEventListener('click', () => {
+        store.setExerciseConfig(ex.id, { singleArm: b.dataset.sa ? true : null });
+        window.__closeSheet();
+        rerender();
+        toast(b.dataset.sa ? 'Logging one side at a time' : 'Back to both sides');
+      });
+    });
     sheet.querySelector('#ex-reading').addEventListener('change', (e) => {
       store.setExerciseConfig(ex.id, { reading: e.target.value.trim() || null });
       rerender();

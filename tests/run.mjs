@@ -797,6 +797,92 @@ section('Swap — everything that must change, and everything that must not');
   store.resetAll();
 }
 
+// ============================================================ mixed units
+section('Mixed kg/lb gym — per-set units');
+{
+  const U = await import(`${APP}/units.js`);
+  store.resetAll();
+  store.updateProfile({ units: 'kg' });
+  store.setExerciseUnit('incline-db-press', 'lb');
+
+  eq('the exercise is in lb', U.unitFor('incline-db-press'), 'lb');
+  eq('a set with no unit follows the exercise', U.unitForSet({}, 'incline-db-press'), 'lb');
+  eq('a set can override it', U.unitForSet({ unit: 'kg' }, 'incline-db-press'), 'kg');
+
+  // THE case: the 30 lb pair was in use, so set three was done with 14 kg dumbbells.
+  // Typing 14 must store 14 kg, not 14 lb converted to 6.35 kg.
+  eq('typing in the overridden unit stores kilograms', U.toKg(14, 'incline-db-press', 'kg'), 14);
+  eq('…and without the override it converts', U.toKg(30, 'incline-db-press', null), 13.608);
+
+  // It must read back in the unit it was PERFORMED in, or the number is meaningless later.
+  eq('reads back as 14 kg', U.num(14, 'incline-db-press', 'kg'), '14');
+  eq('and an lb set reads back in lb', U.num(13.608, 'incline-db-press', null), '30');
+
+  // Both are stored in kg, so they stay directly comparable.
+  ok('the kg set is genuinely heavier', 14 > 13.608);
+  store.setExerciseUnit('incline-db-press', null);
+  store.resetAll();
+}
+
+// ============================================================ single arm
+section('Single-arm work is a property of the gym, not the movement');
+{
+  const { prescription } = await import(`${APP}/program.js`);
+  store.resetAll();
+
+  ok('off by default', !store.getExerciseConfig('chest-supported-row')?.singleArm);
+  store.setExerciseConfig('chest-supported-row', { singleArm: true });
+  ok('settable per exercise', store.getExerciseConfig('chest-supported-row').singleArm === true);
+  ok('and scoped to that exercise', !store.getExerciseConfig('lat-pulldown')?.singleArm);
+
+  // It coexists with the labelling note rather than replacing it.
+  store.setExerciseConfig('chest-supported-row', { reading: 'single side' });
+  const cfg = store.getExerciseConfig('chest-supported-row');
+  ok('both settings survive together', cfg.singleArm === true && cfg.reading === 'single side');
+
+  store.setExerciseConfig('chest-supported-row', { singleArm: null });
+  ok('can be turned off', !store.getExerciseConfig('chest-supported-row').singleArm);
+
+  // "/side" on an upper-body lift, "/leg" on a leg one — the old code said "/leg" for everything.
+  const row = { ...getExercise('chest-supported-row'), perSide: true };
+  ok('upper body reads /side', /\/side/.test(prescription(row)), prescription(row));
+  ok('legs still read /leg', /\/leg/.test(prescription(getExercise('bulgarian-split-squat'))));
+  store.resetAll();
+}
+
+// ============================================================ the bar
+section('The bar and the plates this gym actually has');
+{
+  const LB = 2.2046226218;
+  const plates = [45, 35, 25, 10, 5, 2.5].map((x) => x / LB);
+  const bar = 40 / LB;
+
+  // Every barbell load in the real six-week log must decompose into plates that exist.
+  for (const [total, expect] of [[130, [45]], [150, [45, 10]], [200, [45, 35]], [225, [45, 45, 2.5]]]) {
+    const r = computePlates(total / LB, bar, plates);
+    eq(`${total} lb loads as ${expect.join('+')} a side`,
+      r.perSide.map((x) => Math.round(x * LB * 10) / 10), expect);
+    ok(`${total} lb leaves nothing over`, r.remainder < 0.02, `short ${r.remainder}`);
+  }
+
+  // The rounding bug this replaced: a 10 lb plate written as 4.54 kg is very slightly HEAVIER
+  // than the 4.5359 kg actually remaining, so the greedy fill skips it and closes the gap with a
+  // fistful of small plates instead. It still adds up — it is just a loading no one would use.
+  const rounded = [20.41, 15.88, 11.34, 4.54, 2.27, 1.13];
+  const sloppy = computePlates(150 / LB, bar, rounded);
+  const clean = computePlates(150 / LB, bar, plates);
+  ok('rounded values need more plates for the same weight',
+    sloppy.perSide.length > clean.perSide.length, `${sloppy.perSide.length} vs ${clean.perSide.length}`);
+  eq('full precision gives the loading you would actually use',
+    clean.perSide.map((x) => Math.round(x * LB)), [45, 10]);
+
+  // Mixing denominations is worse still: a 25 kg plate (55.1 lb) tops the list, gets grabbed
+  // first, and leaves a remainder no lb plate can close.
+  const mixed = [...plates, 25, 20, 15, 10, 5, 2.5, 1.25].sort((a, b) => b - a);
+  ok('a mixed kg/lb rack cannot close 225 lb', computePlates(225 / LB, bar, mixed).remainder > 0.05);
+  ok('the lb rack alone closes it', computePlates(225 / LB, bar, plates).remainder < 0.02);
+}
+
 // ============================================================ drop sets
 section('Drop sets — finishing the work without lying about the load');
 {

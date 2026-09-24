@@ -228,6 +228,26 @@ function migrate(data) {
     }
   }
 
+  /*
+   * The bar, corrected once from the athlete's own loading.
+   *
+   * The profile carried the 20 kg default, but their logged squats only decompose into real
+   * plates against a 40 lb bar: 130 lb total minus 40 leaves 45 lb a side, exactly one plate.
+   * A 44 lb bar would need 43 lb a side, which no plate makes. Same at 150: 40 + (45+10) a side.
+   *
+   * The plates are the lb rack, at FULL precision and lb only. Two things go wrong otherwise:
+   * rounding 10 lb to 4.54 kg makes it look heavier than the 4.5359 kg actually remaining, so the
+   * greedy fill skips it; and mixing kg and lb denominations puts a 25 kg plate (55.1 lb) at the
+   * top of the list, where it gets grabbed first and leaves a remainder no lb plate can close.
+   * Nobody loads both denominations on one bar, so the calculator should not either.
+   */
+  if (!merged.profile.barVerified) {
+    const LB = 2.2046226218;
+    merged.profile.barWeightKg = 40 / LB;
+    merged.profile.platesKg = [45, 35, 25, 10, 5, 2.5].map((x) => x / LB);
+    merged.profile.barVerified = true;
+  }
+
   merged.schemaVersion = SCHEMA_VERSION;
   return merged;
 }

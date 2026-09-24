@@ -46,6 +46,18 @@ export function unitFor(exId) {
   return getExerciseUnit(exId) || unit();
 }
 
+/**
+ * The unit for ONE LOGGED SET.
+ *
+ * A gym with both kg and lb dumbbells will sooner or later hand you a set in the wrong one — the
+ * 30 lb pair is in use, so set three is done with 14 kg. Without a per-set unit that session can
+ * only be recorded by converting in your head, which is exactly where the errors come from.
+ * A set's own unit wins; otherwise the exercise's; otherwise the global default.
+ */
+export function unitForSet(set, exId) {
+  return set?.unit || unitFor(exId);
+}
+
 function conv(kg, u) {
   const n = Number(kg);
   if (!Number.isFinite(n)) return n;
@@ -53,15 +65,15 @@ function conv(kg, u) {
 }
 
 /** kg (stored) → the number to show, in this exercise's unit. */
-export function toDisplay(kg, exId = null) {
-  return conv(kg, unitFor(exId));
+export function toDisplay(kg, exId = null, forceUnit = null) {
+  return conv(kg, forceUnit || unitFor(exId));
 }
 
 /** What the user typed, in this exercise's unit → kg for storage. */
-export function toKg(value, exId = null) {
+export function toKg(value, exId = null, forceUnit = null) {
   const n = Number(value);
   if (!Number.isFinite(n)) return n;
-  if (unitFor(exId) !== 'lb') return n;
+  if ((forceUnit || unitFor(exId)) !== 'lb') return n;
   return Math.round((n / LB_PER_KG) * 1000) / 1000;
 }
 
@@ -73,14 +85,14 @@ function trimNum(n) {
  * Display a weight that was actually LOGGED. Rounded to 0.5 only — never snapped, because this
  * is a record of what you did, not a suggestion.
  */
-export function num(kg, exId = null) {
-  const v = toDisplay(kg, exId);
+export function num(kg, exId = null, forceUnit = null) {
+  const v = toDisplay(kg, exId, forceUnit);
   if (!Number.isFinite(v)) return '';
   return trimNum(Math.round(v * 2) / 2);
 }
 
-export function w(kg, exId = null) {
-  return `${num(kg, exId)} ${unitFor(exId)}`;
+export function w(kg, exId = null, forceUnit = null) {
+  return `${num(kg, exId, forceUnit)} ${forceUnit || unitFor(exId)}`;
 }
 
 /**
@@ -126,8 +138,8 @@ export function incrementKg(ex) {
 }
 
 /** Input step for a number field. */
-export function step(exId = null) {
-  return unitFor(exId) === 'lb' ? '2.5' : '0.5';
+export function step(exId = null, forceUnit = null) {
+  return (forceUnit || unitFor(exId)) === 'lb' ? '2.5' : '0.5';
 }
 
 // ---------------------------------------------------------------- global-unit helpers
