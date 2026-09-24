@@ -46,6 +46,7 @@ export const WARMUP = {
     ['Band pull-aparts × 20', 'Shoulders and upper back before pressing and curling'],
     ['Elbow circles + light band curls × 15', 'Warms the elbow joint — the one that complains on heavy curls and extensions'],
     ['1–2 light sets of the close-grip bench', 'Grooves the pattern before loading it'],
+    ['Dead bug × 10 each side', 'Teaches the ribs-down brace the ab wheel depends on — do it before you need it'],
   ],
   lower: [
     ['3–4 min easy bike', 'Core temperature'],

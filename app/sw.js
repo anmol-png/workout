@@ -12,7 +12,7 @@
  * cache AFTER serving the old copy — so every user sits exactly one reload behind forever.
  */
 
-const CACHE = 'workout-v5';
+const CACHE = 'workout-v6';
 
 // Relative paths: this is served from a GitHub Pages subpath (/workout/app/), not the domain
 // root. Leading slashes would resolve to the wrong origin path and every precache would 404.

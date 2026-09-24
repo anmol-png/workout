@@ -49,7 +49,7 @@ export const DAYS = [
   { key: 'upper', name: 'Upper', code: 'UPPER', subtitle: 'Chest · Back · Delts · Arms',    weekday: 6, doc: '04-Upper.md' },
   // Optional extra — no fixed weekday. Arms and side delts are the cheapest muscles to add a
   // session for: small, fast-recovering, and they don't compete with leg recovery.
-  { key: 'arms',  name: 'Arms',  code: 'ARMS',  subtitle: 'Biceps · Triceps · Side Delts', weekday: null, optional: true },
+  { key: 'arms',  name: 'Arms & Core', code: 'ARMS', subtitle: 'Biceps · Triceps · Abs', weekday: null, optional: true },
 ];
 
 /**
@@ -483,37 +483,76 @@ export const EXERCISES = [
     substitutes: ['EZ-Bar Skullcrusher', 'DB Overhead Extension'],
   },
   {
-    id: 'arms-incline-curl', day: 'arms', order: 'C2', supersetGroup: 'C', name: 'Incline DB Curl',
+    id: 'arms-preacher-curl', day: 'arms', order: 'C2', supersetGroup: 'C', name: 'Preacher Curl',
     muscles: { primary: ['biceps'], secondary: [] },
     sets: 3, repRange: [10, 12], rpe: [9, 9], restSec: 90,
-    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 12,
+    increment: INCREMENT.BARBELL, unit: 'barbell', startLoad: 20,
     cues: [
-      'Incline puts the upper arm behind the torso = biceps under stretch.',
-      'Elbows stay back. Slow negative.',
+      'The pad kills the swing, so the biceps get the whole set — nothing else can help.',
+      'Shortened-position work: the incline curl you were doing trains the stretch, this trains the peak.',
+      'Do NOT let the elbows fully lock at the bottom under load.',
     ],
-    substitutes: ['DB Curl', 'Cable Curl'],
+    substitutes: ['EZ-Bar Preacher Curl', 'Machine Preacher Curl', 'DB Curl', 'Cable Curl'],
   },
   {
-    id: 'arms-lateral-raise', day: 'arms', order: 'D1', supersetGroup: 'D', name: 'Cable Lateral Raise',
-    muscles: { primary: ['sideDelts'], secondary: [] },
-    sets: 3, repRange: [12, 20], rpe: [9, 9], restSec: 20,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 7.5,
+    id: 'arms-pushdown', day: 'arms', order: 'D1', supersetGroup: 'D', name: 'Triceps Pushdown (rope)',
+    muscles: { primary: ['triceps'], secondary: [] },
+    sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 20,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 25,
     cues: [
-      'Side delts are here because they recover fast and add visible width.',
-      'Lead with the elbow, stop at shoulder height. Go lighter than you want to.',
+      'Third triceps movement, and the one that trains the SHORT head — the overhead extension',
+      'trains the long head, close-grip trains both. That is the full set of angles.',
+      'Spread the rope at the bottom. Elbows pinned to your ribs.',
     ],
-    substitutes: ['DB Lateral Raise', 'Machine Lateral Raise'],
+    substitutes: ['Single-arm Pushdown', 'Straight-bar Pushdown', 'Bench Dips'],
   },
   {
     id: 'arms-hammer-curl', day: 'arms', order: 'D2', supersetGroup: 'D', name: 'Cable Rope Hammer Curl',
     muscles: { primary: ['biceps'], secondary: [] },
-    sets: 2, repRange: [12, 15], rpe: [9, 9], restSec: 75,
+    sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 90,
     increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 22.5,
     cues: [
       'Neutral grip hits the brachialis, which sits under the biceps and pushes it up.',
       'Elbows fixed at your sides.',
     ],
     substitutes: ['DB Hammer Curl'],
+  },
+  {
+    id: 'arms-leg-raise', day: 'arms', order: 'E1', supersetGroup: 'E', name: 'Hanging Leg Raise',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 3, repRange: [8, 15], rpe: [8, 9], restSec: 20,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'CURL THE PELVIS toward the ribs. If you only lift the legs, that is hip flexors, not abs.',
+      'Swinging means it is too hard — do knee raises until you can control it.',
+      'Once you clear 15 clean reps, hold a dumbbell between your feet.',
+    ],
+    substitutes: ['Hanging Knee Raise', 'Captain’s Chair Knee Raise', 'Lying Leg Raise'],
+  },
+  {
+    id: 'arms-cable-crunch', day: 'arms', order: 'E2', supersetGroup: 'E', name: 'Cable Crunch',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 75,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 25,
+    cues: [
+      'The ONLY ab exercise here that loads progressively — a stack means double progression works',
+      'on abs exactly as it does on a bench press. This is the one that actually builds them.',
+      'Round the spine down toward the knees. Hips do not move; this is not a bow.',
+    ],
+    substitutes: ['Machine Crunch', 'Decline Sit-up', 'Weighted Crunch'],
+  },
+  {
+    id: 'arms-ab-wheel', day: 'arms', order: 'F', name: 'Ab Wheel Rollout',
+    muscles: { primary: ['core'], secondary: ['back'] },
+    sets: 2, repRange: [8, 12], rpe: [8, 8], restSec: 60,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'Anti-extension: the abs work to STOP your back arching. That transfers straight to squats',
+      'and deadlifts, which is the opposite of what a crunch gives you.',
+      'Ribs down, glutes squeezed. Roll only as far as you can go without the lower back sagging.',
+      'From the knees. Never let the hips lead.',
+    ],
+    substitutes: ['Barbell Rollout', 'Plank', 'Long-lever Plank'],
   },
 ];
 
@@ -540,6 +579,7 @@ const SUBSTITUTE_META = {
   'T-Bar Row': { unit: 'barbell', startLoad: 30 },
   'Seal Row': { unit: 'barbell', startLoad: 30 },
   'Barbell Curl': { unit: 'barbell', startLoad: 20 },
+  'EZ-Bar Preacher Curl': { unit: 'barbell', startLoad: 15 },
   'Trap-Bar Deadlift': { unit: 'barbell', startLoad: 60 },
 
   // → dumbbell
@@ -575,6 +615,10 @@ const SUBSTITUTE_META = {
   'Pendulum Squat': { unit: 'machine', startLoad: 40 },
   'Glute Bridge Machine': { unit: 'machine', startLoad: 40 },
   'Cable Crunch': { unit: 'machine', startLoad: 25 },
+  'Machine Crunch': { unit: 'machine', startLoad: 30 },
+  'Weighted Crunch': { unit: 'dumbbell', startLoad: 10 },
+  'Straight-bar Pushdown': { unit: 'machine', startLoad: 25 },
+  'Machine Preacher Curl': { unit: 'machine', startLoad: 20 },
   'Smith Machine Calf Raise': { unit: 'machine', startLoad: 40 },
   'Leg Press Calf Raise': { unit: 'machine', startLoad: 60 },
   'Leg Press Calf Raise (bent knee)': { unit: 'machine', startLoad: 60 },
@@ -590,6 +634,12 @@ const SUBSTITUTE_META = {
   '45° Back Extension': { unit: 'bodyweight', startLoad: 0 },
   'Single-leg Hip Thrust': { unit: 'bodyweight', startLoad: 0 },
   'Hanging Knee Raise': { unit: 'bodyweight', startLoad: 0 },
+  'Lying Leg Raise': { unit: 'bodyweight', startLoad: 0 },
+  'Captain\u2019s Chair Knee Raise': { unit: 'bodyweight', startLoad: 0 },
+  'Barbell Rollout': { unit: 'bodyweight', startLoad: 0 },
+  'Plank': { unit: 'bodyweight', startLoad: 0 },
+  'Long-lever Plank': { unit: 'bodyweight', startLoad: 0 },
+  'Decline Sit-up': { unit: 'bodyweight', startLoad: 0 },
   'Bike Intervals': { unit: 'none', startLoad: null },
   'Incline Treadmill': { unit: 'none', startLoad: null },
 };
