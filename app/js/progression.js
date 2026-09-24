@@ -213,7 +213,7 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
     const weeks = Math.floor(gap / 7);
     return {
       action: ACTION.RETURN,
-      weight: lastWeight ? round(lastWeight * backoff) : ex.startLoad,
+      weight: lastWeight ? round(ex.inverted ? lastWeight / backoff : lastWeight * backoff) : ex.startLoad,
       reps: lo,
       lastWeight,
       layoffDays: gap,
@@ -226,17 +226,24 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
   // ── Earned the increment?
   if (earnedIncrement(working, ex)) {
     const inc = incrementFor(ex);
-    const next = inc ? round(lastWeight + inc) : lastWeight;
+    // On an assistance machine the stack is COUNTERWEIGHT: progress means taking weight OFF, and
+    // the number must never be driven below zero (which would be an unassisted rep, not a target).
+    const next = !inc ? lastWeight
+      : ex.inverted ? Math.max(0, round(lastWeight - inc))
+        : round(lastWeight + inc);
     return {
       action: ACTION.ADD_LOAD,
       weight: next,
       reps: lo,
       lastWeight,
-      note: inc
-        ? (ex.unit === 'bodyweight'
-          ? `You hit ${hi}s last time — add ${fmtW(inc, ex)} on a belt, back to ${lo} reps.`
-          : `You hit ${hi}s last time — up ${fmtW(inc, ex)}, back to ${lo} reps.`)
-        : `You hit ${hi}s last time — add load or a notch.`,
+      note: !inc ? `You hit ${hi}s last time — add load or a notch.`
+        : ex.inverted
+          ? (next === 0
+            ? `You hit ${hi}s last time — that's the whole stack gone. Try it unassisted.`
+            : `You hit ${hi}s last time — drop the assist by ${fmtW(inc, ex)}, back to ${lo} reps.`)
+          : ex.unit === 'bodyweight'
+            ? `You hit ${hi}s last time — add ${fmtW(inc, ex)} on a belt, back to ${lo} reps.`
+            : `You hit ${hi}s last time — up ${fmtW(inc, ex)}, back to ${lo} reps.`,
     };
   }
 
@@ -244,10 +251,35 @@ export function computeNextTarget(history, exerciseOrId, todayIso = null) {
   if (isStalled(history)) {
     return {
       action: ACTION.STALL,
-      weight: round(lastWeight * STALL_BACKOFF),
+      weight: round(ex.inverted ? lastWeight / STALL_BACKOFF : lastWeight * STALL_BACKOFF),
       reps: lo,
       lastWeight,
       note: `Stalled ${STALL_SESSIONS} sessions. Take ~10% off for one session, or rotate to a substitute.`,
+    };
+  }
+
+  /*
+   * ── Hit the reps, but too hard to bank them.
+   *
+   * `earnedIncrement` needs the top of the range on every set AND rpe <= the ceiling. When the
+   * reps are all there and only the RPE blocked it, the athlete has done everything visible
+   * right and the app previously said nothing but "same weight, get N reps" — which reads as the
+   * program being broken rather than as the one specific thing standing in the way. Saying it
+   * plainly is the difference between a stall that resolves next session and one that lasts a month.
+   */
+  const ceiling = ex.rpe[1];
+  const repsAllThere = working.length >= ex.sets && working.every((s) => s.reps >= hi);
+  if (repsAllThere && working.some((s) => s.rpe != null && s.rpe > ceiling)) {
+    const worst = Math.max(...working.map((s) => s.rpe || 0));
+    return {
+      action: ACTION.REPEAT,
+      weight: lastWeight,
+      reps: hi,
+      lastWeight,
+      rpeBlocked: true,
+      note: `You already hit ${hi}s — the load is stuck because they cost RPE ${fmt(worst)}, and `
+        + `the increment only banks at RPE ${ceiling} or under. Same weight, same reps, but stop `
+        + `${10 - ceiling} short of failure. That earns the jump.`,
     };
   }
 

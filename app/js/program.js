@@ -602,8 +602,11 @@ const SUBSTITUTE_META = {
   'Machine Lateral Raise': { unit: 'machine', startLoad: 15 },
   'Cable Curl': { unit: 'machine', startLoad: 15 },
   'Lat Pulldown': { unit: 'machine', startLoad: 45 },
-  'Assisted Pull-up': { unit: 'machine', startLoad: 30 },
-  'Assisted Dip': { unit: 'machine', startLoad: 30 },
+  // INVERTED: the stack is COUNTERWEIGHT, so a bigger number is an EASIER set. Everything that
+  // compares two sets — progression, e1RM, personal bests — reads backwards without this flag,
+  // and will happily congratulate you for adding assistance.
+  'Assisted Pull-up': { unit: 'machine', startLoad: 30, inverted: true },
+  'Assisted Dip': { unit: 'machine', startLoad: 30, inverted: true },
   'Neutral-grip Pulldown': { unit: 'machine', startLoad: 45 },
   'Chest-Supported Row': { unit: 'machine', startLoad: 35 },
   'Chest-Supported Machine Row': { unit: 'machine', startLoad: 35 },
@@ -668,6 +671,7 @@ export function resolveExercise(ex, subName) {
     unit,
     startLoad: 'startLoad' in meta ? meta.startLoad : ex.startLoad,
     increment: meta.increment ?? INCREMENT_BY_UNIT[unit] ?? ex.increment,
+    inverted: meta.inverted ?? ex.inverted ?? false,
     _substituted: true,
   };
 }

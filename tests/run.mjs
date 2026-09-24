@@ -716,6 +716,103 @@ section('Coming back after time off');
   ok('never below the backed-off floor', proj.every((x) => x.reps >= 5));
 }
 
+// ============================================================ inverted lifts
+section('Assisted lifts — the stack is counterweight, so less is harder');
+{
+  const { resolveExercise } = await import(`${APP}/program.js`);
+  const { scoreSet, bestSet: bs, isPersonalRecord: isPR } = statsMod;
+  const assisted = resolveExercise(getExercise('pull-up'), 'Assisted Pull-up');
+  ok('the substitute carries the inverted flag', assisted.inverted === true);
+  ok('a normal lift does not', !getExercise('bench-press').inverted);
+
+  // Progress means taking assistance OFF.
+  const earned = [{ date: '2026-09-01', sets: Array.from({ length: 4 }, () => ({ weight: 32.5, reps: 8, rpe: 8 })) }];
+  const t = computeNextTarget(earned, assisted, '2026-09-03');
+  eq('earning the increment REDUCES the assist', t.action, ACTION.ADD_LOAD);
+  ok('next target is lighter, not heavier', t.weight < 32.5, `got ${t.weight}`);
+  ok('the note says drop the assist', /drop the assist/.test(t.note), t.note);
+
+  // It must never go negative — below zero is an unassisted rep, not a target.
+  const almost = [{ date: '2026-09-01', sets: Array.from({ length: 4 }, () => ({ weight: 2, reps: 8, rpe: 8 })) }];
+  const t2 = computeNextTarget(almost, assisted, '2026-09-03');
+  ok('assist floors at zero', t2.weight === 0, `got ${t2.weight}`);
+  ok('and says to try it unassisted', /unassisted/.test(t2.note), t2.note);
+
+  // Backing off an assisted lift means MORE help, not less.
+  const stalled = ['2026-09-01', '2026-09-08', '2026-09-15'].map((date) => ({
+    date, sets: Array.from({ length: 4 }, () => ({ weight: 30, reps: 6, rpe: 9 })) }));
+  const t3 = computeNextTarget(stalled, assisted, '2026-09-17');
+  eq('stall on an assisted lift', t3.action, ACTION.STALL);
+  ok('the back-off ADDS assistance', t3.weight > 30, `got ${t3.weight}`);
+
+  // Scoring: the set with the LEAST assistance is the best one.
+  const sets = [{ weight: 45, reps: 8, rpe: 9 }, { weight: 27.5, reps: 8, rpe: 9 }];
+  eq('best assisted set is the least-assisted one', bs(sets, assisted).set.weight, 27.5);
+  eq('…and the opposite for a normal lift', bs(sets, getExercise('bench-press')).set.weight, 45);
+  ok('less assist scores higher', scoreSet(sets[1], assisted) > scoreSet(sets[0], assisted));
+
+  // A PR is dropping the assist, not adding it.
+  const hist = [{ date: '2026-09-01', sets: [{ weight: 40, reps: 8, rpe: 9 }] }];
+  ok('less assist at equal reps is a PR', isPR({ weight: 32.5, reps: 8, rpe: 9 }, hist, assisted).isPR);
+  ok('more assist is NOT a PR', !isPR({ weight: 50, reps: 8, rpe: 9 }, hist, assisted).isPR);
+}
+
+// ============================================================ rpe-blocked
+section('Saying why the weight is stuck');
+{
+  const squat = getExercise('back-squat');   // 4×5–8 @ RPE 7–8
+
+  // Every rep there, but ground out above the ceiling — the increment cannot bank.
+  const ground = [{ date: '2026-09-01', sets: Array.from({ length: 4 }, () => ({ weight: 60, reps: 8, rpe: 10 })) }];
+  const t = computeNextTarget(ground, squat, '2026-09-03');
+  ok('flagged as RPE-blocked', t.rpeBlocked === true);
+  eq('load does not move', t.weight, 60);
+  ok('names the RPE as the blocker', /RPE 10/.test(t.note) && /RPE 8 or under/.test(t.note), t.note);
+
+  // The same session at the ceiling banks the increment instead.
+  const clean = [{ date: '2026-09-01', sets: Array.from({ length: 4 }, () => ({ weight: 60, reps: 8, rpe: 8 })) }];
+  eq('at the ceiling it earns the load', computeNextTarget(clean, squat, '2026-09-03').action, ACTION.ADD_LOAD);
+
+  // Short of the reps is an ordinary rep target, not an RPE lecture.
+  const shortReps = [{ date: '2026-09-01', sets: [
+    { weight: 60, reps: 8, rpe: 10 }, { weight: 60, reps: 6, rpe: 10 },
+    { weight: 60, reps: 6, rpe: 10 }, { weight: 60, reps: 5, rpe: 10 }] }];
+  ok('missing reps is not reported as RPE-blocked', !computeNextTarget(shortReps, squat, '2026-09-03').rpeBlocked);
+}
+
+// ============================================================ variant identity
+section('Variant identity — one slot, two exercises');
+{
+  store.resetAll();
+  // The shape the v2 migration produces: the same slot holding a barbell session and a dumbbell
+  // session, each tagged with what was actually performed.
+  store.upsertSession({ id: 'a', date: '2026-08-17', dayKey: 'push', week: 1, notes: '', entries: [
+    { exerciseId: 'bench-press', performedAs: 'Barbell Bench Press',
+      sets: [{ weight: 70, reps: 6, rpe: 8 }, { weight: 70, reps: 6, rpe: 8 }] }] });
+  store.upsertSession({ id: 'b', date: '2026-08-25', dayKey: 'push', week: 2, notes: '', entries: [
+    { exerciseId: 'bench-press', performedAs: 'Dumbbell Bench Press',
+      sets: [{ weight: 25, reps: 9, rpe: 8 }, { weight: 25, reps: 8, rpe: 8 }] }] });
+
+  eq('unfiltered history still returns both', store.historyFor('bench-press').length, 2);
+  eq('barbell history excludes the dumbbell session',
+    store.historyFor('bench-press', 'Barbell Bench Press').map((h) => h.sets[0].weight), [70]);
+  eq('dumbbell history excludes the barbell session',
+    store.historyFor('bench-press', 'Dumbbell Bench Press').map((h) => h.sets[0].weight), [25]);
+
+  // THE bug this fixes: without filtering, the dumbbell target is computed from a 70 kg barbell.
+  const dbEx = { ...getExercise('bench-press'), name: 'Dumbbell Bench Press', unit: 'dumbbell' };
+  const t = computeNextTarget(store.historyFor('bench-press', 'Dumbbell Bench Press'), dbEx, '2026-08-27');
+  ok('dumbbell target comes off the dumbbell load, not the barbell', t.weight === 25, `got ${t.weight}`);
+
+  // Untagged history must stay INCLUDED — most slots were never mixed, and dropping their
+  // pre-tagging sessions would silently reset every lift in the program.
+  store.upsertSession({ id: 'c', date: '2026-08-30', dayKey: 'pull', week: 3, notes: '', entries: [
+    { exerciseId: 'lat-pulldown', sets: [{ weight: 40, reps: 10, rpe: 8 }] }] });
+  eq('untagged history is kept when a variant is requested',
+    store.historyFor('lat-pulldown', 'Lat Pulldown').length, 1);
+  store.resetAll();
+}
+
 // ============================================================ cloud backup
 section('Cloud backup — the token must never reach a shared file');
 {

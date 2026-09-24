@@ -193,7 +193,7 @@ function liftChart() {
     .map((id) => {
       const base = getExercise(id);
       return base
-        ? { ex: resolveExercise(base, store.getSubstitution(id)), history: store.historyFor(id) }
+        ? (({ ex }) => ({ ex, history: store.historyFor(id, ex.name) }))({ ex: resolveExercise(base, store.getSubstitution(id)) })
         : null;
     })
     .filter((l) => l && l.history.length);
@@ -201,7 +201,7 @@ function liftChart() {
   if (!lifts.length) return '';
   if (!lifts.some((l) => l.ex.id === selectedLift)) selectedLift = lifts[0].ex.id;
   const active = lifts.find((l) => l.ex.id === selectedLift);
-  const series = e1RMSeries(active.history);
+  const series = e1RMSeries(active.history, active.ex);
   const best = Math.max(...series.map((p) => p.value), 0);
   const first = series.length ? series[0].value : 0;
   const gain = series.length > 1 ? best - first : 0;

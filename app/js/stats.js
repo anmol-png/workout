@@ -5,9 +5,10 @@
  * source of truth (the logged sets) and means changing a formula never requires a migration.
  */
 
-import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES, DAYS } from './program.js';
+import { EXERCISES, getExercise, VOLUME_TARGETS, MUSCLES, DAYS, resolveExercise } from './program.js';
 import {
   getSessions, getDailyLogs, todayISO, parseISO, daysBetween, historyFor as getHistoryFor,
+  getProfile, getSubstitution,
 } from './store.js';
 
 // ---------------------------------------------------------------- estimated 1RM
@@ -30,8 +31,23 @@ export function e1RM(weight, reps, rpe = null) {
   return w * (1 + effective / 30);
 }
 
-export function bestE1RM(sets) {
-  return sets.reduce((best, s) => Math.max(best, e1RM(s.weight, s.reps, s.rpe)), 0);
+/**
+ * The comparable strength score for one set — the number every "is this better?" question uses.
+ *
+ * For a normal lift that is just e1RM. For an ASSISTED lift it cannot be: the stack is
+ * counterweight, so a bigger number is an easier set, and ranking by it would crown the set
+ * where you took the most help. What you actually lifted is your bodyweight MINUS the assist,
+ * so that is what gets scored — which also makes an assisted pull-up directly comparable to an
+ * unassisted one, and to a weighted one, on a single axis.
+ */
+export function scoreSet(set, exercise = null) {
+  if (!exercise?.inverted) return e1RM(set.weight, set.reps, set.rpe);
+  const bw = Number(getProfile().startingWeightKg) || 0;
+  return e1RM(Math.max(0, bw - (Number(set.weight) || 0)), set.reps, set.rpe);
+}
+
+export function bestE1RM(sets, exercise = null) {
+  return sets.reduce((best, s) => Math.max(best, scoreSet(s, exercise)), 0);
 }
 
 /** Volume load for a set: weight × reps. The simplest honest measure of work done. */
@@ -75,8 +91,8 @@ export function isPersonalRecord(set, history, exercise) {
   //                     const prev  = Math.max(...priorSets.map(setVolume), 0);
   //                     return { isPR: value > prev, kind: 'volume', prev, value };
 
-  const value = e1RM(set.weight, set.reps, set.rpe);
-  const prev = Math.max(...priorSets.map((s) => e1RM(s.weight, s.reps, s.rpe)), 0);
+  const value = scoreSet(set, exercise);
+  const prev = Math.max(...priorSets.map((s) => scoreSet(s, exercise)), 0);
   return { isPR: value > prev && value > 0, kind: 'e1rm', prev, value };
 }
 
@@ -251,9 +267,9 @@ export function currentStreak() {
 }
 
 /** e1RM over time for one exercise — the strength-progression chart series. */
-export function e1RMSeries(history) {
+export function e1RMSeries(history, exercise = null) {
   return history
-    .map((h) => ({ date: h.date, value: bestE1RM(h.sets) }))
+    .map((h) => ({ date: h.date, value: bestE1RM(h.sets, exercise) }))
     .filter((p) => p.value > 0);
 }
 
@@ -264,12 +280,14 @@ export function e1RMSeries(history) {
  * is unreliable — so 22 reps and 15 reps at the same weight score identically. Without the
  * tiebreak, "best" is arbitrary among them.
  */
-export function bestSet(sets) {
+export function bestSet(sets, exercise = null) {
   let best = null;
   let key = [-1, -1, -1];
   for (const x of sets) {
     if (!(x.reps > 0)) continue;
-    const k = [e1RM(x.weight, x.reps, x.rpe), Number(x.reps) || 0, Number(x.weight) || 0];
+    // On an inverted lift the tiebreak flips too: less assistance is the better set.
+    const load = exercise?.inverted ? -(Number(x.weight) || 0) : (Number(x.weight) || 0);
+    const k = [scoreSet(x, exercise), Number(x.reps) || 0, load];
     if (k[0] > key[0] || (k[0] === key[0] && k[1] > key[1])) { key = k; best = x; }
   }
   return best ? { set: best, e1rm: key[0] } : null;
@@ -286,9 +304,12 @@ export function bestSet(sets) {
 export function personalBests() {
   const out = [];
 
-  for (const ex of EXERCISES) {
-    if (ex.isFinisher) continue;
-    const history = getHistoryFor(ex.id);
+  for (const base of EXERCISES) {
+    if (base.isFinisher) continue;
+    // Resolve the substitution so an assisted lift is scored the right way round, and so history
+    // is narrowed to the variant currently in the slot rather than blending two exercises.
+    const ex = resolveExercise(base, getSubstitution(base.id));
+    const history = getHistoryFor(ex.id, ex.name);
     if (!history.length) continue;
 
     let best = null;
@@ -296,14 +317,14 @@ export function personalBests() {
     let bestIndex = -1;
 
     history.forEach((h, i) => {
-      const b = bestSet(h.sets);
+      const b = bestSet(h.sets, ex);
       if (b && (!best || b.e1rm > best.e1rm)) { best = b; bestDate = h.date; bestIndex = i; }
     });
     if (!best) continue;
 
     // "New" means it improved on something, not merely that it exists.
     const priorBest = history.slice(0, bestIndex)
-      .map((h) => bestSet(h.sets)?.e1rm || 0)
+      .map((h) => bestSet(h.sets, ex)?.e1rm || 0)
       .reduce((a, b) => Math.max(a, b), 0);
 
     out.push({

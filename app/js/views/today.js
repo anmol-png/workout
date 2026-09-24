@@ -188,8 +188,7 @@ function warmupCard(dayKey, exercises) {
     .filter((ex, i) => needsRamp(ex, i, exercises))
     .map((baseEx) => {
       const ex = resolved(baseEx);
-      const history = store.historyFor(ex.id);
-      const t = computeNextTarget(history, ex);
+      const t = computeNextTarget(historyOf(ex), ex);
       const sets = rampSets(ex, t.weight, bar);
       if (!sets.length) return '';
       const line = sets.map((s) => (s.weight == null
@@ -241,7 +240,7 @@ function layoffBanner(exercises, session, iso) {
 
   const gaps = anchors.map((baseEx) => {
     const ex = resolved(baseEx);
-    const h = store.historyFor(ex.id).filter((x) => x.sessionId !== session.id);
+    const h = historyOf(ex, session);
     if (!h.length) return null;
     return store.daysBetween(h[h.length - 1].date, iso);
   }).filter((n) => n != null);
@@ -265,7 +264,7 @@ function layoffBanner(exercises, session, iso) {
 function exerciseCard(baseEx, session) {
   const sub = store.getSubstitution(baseEx.id);
   const ex = resolved(baseEx);
-  const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
+  const history = historyOf(ex, session);
   const last = history.length ? history[history.length - 1] : null;
   const target = computeNextTarget(history, ex);
   // Per-set expectation rather than the same number repeated — reps fall as fatigue builds.
@@ -421,7 +420,18 @@ function entryFor(session, exerciseId) {
     entry = { exerciseId, sets: [] };
     session.entries.push(entry);
   }
+  // Record WHICH exercise this actually was. A slot holds whatever the substitution pointed at on
+  // the day, and that pointer moves — without this, a dumbbell session and a barbell session in
+  // the same slot are indistinguishable forever, and the engine averages across both.
+  const base = getExercise(exerciseId);
+  if (base) entry.performedAs = resolved(base).name;
   return entry;
+}
+
+/** History for a slot, narrowed to the variant being performed today. */
+function historyOf(ex, session = null) {
+  const h = store.historyFor(ex.id, ex.name);
+  return session ? h.filter((x) => x.sessionId !== session.id) : h;
 }
 
 function setAt(entry, i) {
@@ -464,7 +474,7 @@ function toggleSet(row, session) {
   });
 
   if (set.reps == null) {
-    const history = store.historyFor(exId).filter((h) => h.sessionId !== session.id);
+    const history = historyOf(ex, session);
     const t = computeNextTarget(history, ex);
     set.reps = projectSets(history, ex, t)[i]?.reps || t.reps || ex.repRange[0];
     // Snap the suggestion, then convert back — so what gets stored is exactly what the
@@ -478,7 +488,7 @@ function toggleSet(row, session) {
 
   // PR check runs against history EXCLUDING this session, so a later set in the same session
   // doesn't get compared against an earlier one and steal its own record.
-  const history = store.historyFor(exId).filter((h) => h.sessionId !== session.id);
+  const history = historyOf(ex, session);
   const pr = isPersonalRecord(set, history, ex);
   set.isPR = pr.isPR;
 
@@ -501,7 +511,7 @@ function toggleSet(row, session) {
 }
 
 function prefill(ex, session) {
-  const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
+  const history = historyOf(ex, session);
   const t = computeNextTarget(history, ex);
   if (t.weight == null) return toast('No target yet — this one needs calibrating first.');
   const projection = projectSets(history, ex, t);
@@ -591,7 +601,7 @@ function showInfo(ex) {
 
 function showPlates(ex, session) {
   const p = store.getProfile();
-  const history = store.historyFor(ex.id).filter((h) => h.sessionId !== session.id);
+  const history = historyOf(ex, session);
   const t = computeNextTarget(history, ex);
   const initial = t.weight ?? p.barWeightKg;
 

@@ -108,10 +108,10 @@ function showSession(id) {
 
     // "best" is recomputed live rather than trusting the isPR flag stored at tap time — those
     // could be stale from before the duplicate-session bug was fixed.
-    const allTime = bestE1RM(store.historyFor(ex.id).flatMap((h) => h.sets));
+    const allTime = bestE1RM(store.historyFor(ex.id, ex.name).flatMap((h) => h.sets), ex);
 
     // Exactly ONE set gets the badge — shared comparator so History and Stats always agree.
-    const top = bestSet(sets);
+    const top = bestSet(sets, ex);
     const bestIdx = top ? sets.indexOf(top.set) : -1;
     const tiesAllTime = top && allTime > 0 && top.e1rm >= allTime - 0.01;
 

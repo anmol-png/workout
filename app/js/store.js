@@ -10,7 +10,8 @@
 import { DAYS, exercisesForDay } from './program.js';
 
 const KEY = 'workout.v1';
-const SCHEMA_VERSION = 1;
+const BACKUP_KEY = 'workout.v1.pre-v2';
+const SCHEMA_VERSION = 2;
 
 /** Local (not UTC) YYYY-MM-DD. Using UTC here would roll the date over mid-evening in IST. */
 export function todayISO(d = new Date()) {
@@ -51,6 +52,8 @@ function emptyState() {
      * pulldown. A single global unit can't describe that, so each exercise may override it.
      */
     exerciseUnits: {},
+    /** exerciseId -> { perSide?: true, addKg?: number } — see getExerciseConfig. */
+    exerciseConfig: {},
     /**
      * isoDate -> dayKey. Life moves training days around: a missed session, a day you don't
      * fancy, an extra optional one. Pinning a session to a date lets the week be rearranged
@@ -64,6 +67,91 @@ function emptyState() {
   };
 }
 
+/**
+ * ── SCHEMA 2 ──────────────────────────────────────────────────────────────────
+ * Two repairs to data logged under schema 1, both caused by the same gap: a logged set recorded
+ * WHAT WAS TYPED, never what was actually done.
+ *
+ * 1. SPLIT MIXED VARIANTS. `substitutions` is a flat {exerciseId: name} map with no date, and an
+ *    entry carried no variant identity — so one slot accumulated sessions from two different
+ *    exercises. `bench-press` held barbell sessions at 70 kg and dumbbell sessions at 25 kg, and
+ *    the progression engine averaged across both, then offered a barbell load for a dumbbell.
+ *    Each session below is re-filed under the exercise actually performed, read off the logged
+ *    loads (the two clusters differ by more than 2x, so there is nothing to guess).
+ *
+ * 2. CORRECT DOUBLE-COUNTED LOADS. Three sessions recorded one side, or one plate of a pair, on
+ *    equipment whose marking is ambiguous. Each correction below was verified against the same
+ *    lift's neighbouring sessions at matching reps AND RPE — equal effort at half the load is
+ *    impossible, so the doubled figure is the real one.
+ *
+ * Both are keyed by (date, exerciseId) and applied at most once, guarded by schemaVersion. The
+ * pre-migration state is written to `workout.v1.pre-v2` first, so this is reversible.
+ */
+const VARIANT_SPLITS = {
+  // exerciseId: { 'YYYY-MM-DD': 'name of the exercise actually performed' }
+  'bench-press': {
+    '2026-08-17': 'Barbell Bench Press', '2026-09-08': 'Barbell Bench Press',
+    '2026-09-14': 'Barbell Bench Press',
+    '2026-08-25': 'Dumbbell Bench Press', '2026-09-01': 'Dumbbell Bench Press',
+    '2026-09-21': 'Dumbbell Bench Press',
+  },
+  'weighted-dip': {
+    '2026-09-04': 'Incline Barbell Press', '2026-09-12': 'Incline Barbell Press',
+    // 13 Aug note: "First was inclined dumbell and not barbell since it wasn't available"
+    '2026-08-13': 'Incline DB Press', '2026-09-19': 'Incline DB Press',
+  },
+  rdl: {
+    '2026-08-24': 'Romanian Deadlift',
+    '2026-08-31': '45\u00b0 Back Extension', '2026-09-18': '45\u00b0 Back Extension',
+  },
+  'barbell-row': {
+    '2026-08-18': 'Barbell Row',
+    '2026-08-28': 'Single-arm DB Row', '2026-09-02': 'Single-arm DB Row',
+    '2026-09-09': 'Single-arm DB Row', '2026-09-16': 'Single-arm DB Row',
+    '2026-09-23': 'Single-arm DB Row',
+  },
+};
+
+const WEIGHT_CORRECTIONS = [
+  // 23 Sep read one plate of a pair marked 21.5. Doubled: 43/50/50 — which matches 9 Sep's
+  // 43x14@8, 50x12@9 almost exactly. 21.5x12@RPE8 beside 16 Sep's 42.5x12@RPE9 is impossible.
+  { date: '2026-09-23', exerciseId: 'seated-cable-row', factor: 2 },
+  // 2 Sep, the athlete's own note: "2 35lb written on the plate so not sure if it is 35 or 70".
+  { date: '2026-09-02', exerciseId: 'seated-cable-row', factor: 2 },
+  // 29 Aug: "Barbell curl had prefix barbell with 25 30 marked" — one side. Doubled lands on
+  // 50/60/50, matching 20 Aug and 11 Sep exactly.
+  { date: '2026-08-29', exerciseId: 'arms-ez-curl', factor: 2 },
+];
+
+/** Applies the two schema-2 repairs. Idempotent: re-running changes nothing. */
+function repairV2(sessions) {
+  const report = { split: 0, corrected: 0 };
+
+  for (const s of sessions) {
+    for (const entry of s.entries) {
+      const variant = VARIANT_SPLITS[entry.exerciseId]?.[s.date];
+      if (variant && !entry.performedAs) { entry.performedAs = variant; report.split += 1; }
+    }
+  }
+
+  for (const fix of WEIGHT_CORRECTIONS) {
+    const s = sessions.find((x) => x.date === fix.date);
+    const entry = s?.entries.find((e) => e.exerciseId === fix.exerciseId);
+    if (!entry || entry._corrected) continue;
+    for (const set of entry.sets) {
+      if (Number(set.weight) > 0) set.weight = Math.round(set.weight * fix.factor * 100) / 100;
+    }
+    entry._corrected = true;
+    report.corrected += 1;
+  }
+
+  if (report.split || report.corrected) {
+    console.info(`[migrate v2] tagged ${report.split} entries with the exercise actually performed, `
+      + `corrected ${report.corrected} double-counted loads`);
+  }
+  return sessions;
+}
+
 let state = load();
 
 function load() {
@@ -73,14 +161,25 @@ function load() {
     const parsed = JSON.parse(raw);
     return migrate(parsed);
   } catch (err) {
-    console.error('Failed to read saved data, starting fresh:', err);
+    // A migration bug must never cost someone their training history. Falling back to
+    // emptyState() here would silently erase every session the moment a new migration threw —
+    // and the write-back on the next commit() would make that permanent. So: salvage whatever
+    // parsed, skip the migration, and leave the raw copy in localStorage untouched.
+    console.error('Migration failed — loading raw data unmigrated:', err);
+    try {
+      const parsed = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (parsed && Array.isArray(parsed.sessions)) {
+        const base = emptyState();
+        return { ...base, ...parsed, profile: { ...base.profile, ...(parsed.profile || {}) } };
+      }
+    } catch { /* genuinely unreadable */ }
     return emptyState();
   }
 }
 
+
 /**
- * Forward-migrate older saved data. Currently a no-op beyond filling gaps, but the shape is here
- * so a v2 never silently drops a user's training history.
+ * Forward-migrate older saved data, so a schema bump never silently drops training history.
  */
 function migrate(data) {
   const base = emptyState();
@@ -93,8 +192,18 @@ function migrate(data) {
     substitutions: data.substitutions || {},
     exerciseUnits: data.exerciseUnits || {},
     schedule: data.schedule || {},
+    exerciseConfig: data.exerciseConfig || {},
     sessions: dedupeSessions(Array.isArray(data.sessions) ? data.sessions : []),
   };
+
+  // Keep one copy of the pre-repair data so the v2 migration is undoable.
+  if ((data.schemaVersion || 1) < 2 && merged.sessions.length) {
+    try {
+      if (!localStorage.getItem(BACKUP_KEY)) localStorage.setItem(BACKUP_KEY, JSON.stringify(data));
+    } catch { /* quota — the repair still runs, it just can't be rolled back */ }
+  }
+  merged.sessions = repairV2(merged.sessions);
+
   merged.schemaVersion = SCHEMA_VERSION;
   return merged;
 }
@@ -231,11 +340,19 @@ export function sessionOnDate(iso) {
  * Every logged set for an exercise, oldest first, each tagged with its session date.
  * This is the input to the progression engine and every chart.
  */
-export function historyFor(exerciseId) {
+export function historyFor(exerciseId, variant = null) {
   const out = [];
   for (const s of [...state.sessions].sort((a, b) => a.date.localeCompare(b.date))) {
     const entry = s.entries.find((e) => e.exerciseId === exerciseId);
     if (!entry) continue;
+    // A slot can hold two different exercises across time — swap Barbell Bench for Dumbbell Bench
+    // and both land here. Comparing reps across them is meaningless, so once a variant is asked
+    // for, entries tagged as a DIFFERENT one are dropped.
+    //
+    // Untagged entries are kept deliberately. Only genuinely mixed slots were tagged by the v2
+    // migration; everywhere else the absence of a tag means the slot has always held one exercise,
+    // and excluding those would throw away every session logged before tagging existed.
+    if (variant && entry.performedAs && entry.performedAs !== variant) continue;
     // A set counts as performed when it has reps. The ✓ tick is a convenience that starts
     // the rest timer — it was never meant to gate whether the set happened, and treating it
     // that way silently discarded 16 of 19 logged sets.
@@ -275,6 +392,27 @@ export function setScheduledDay(iso, dayKey) {
 }
 
 /** null = follow the global default. */
+/**
+ * How a given machine's numbers should be read — the fix for ambiguous plate markings.
+ *
+ * `perSide: true`  → you log one side (or one plate of a pair); the app stores the true total.
+ * `addKg: <n>`     → a fixed bar or sled weight added to whatever you type.
+ *
+ * Kept out of `exerciseUnits` because it answers a different question: that one is "which unit is
+ * printed on this machine", this one is "what does the printed number leave out".
+ */
+export function getExerciseConfig(exerciseId) {
+  return state.exerciseConfig[exerciseId] || null;
+}
+
+export function setExerciseConfig(exerciseId, patch) {
+  const next = { ...(state.exerciseConfig[exerciseId] || {}), ...patch };
+  for (const k of Object.keys(next)) if (next[k] == null || next[k] === false) delete next[k];
+  if (Object.keys(next).length) state.exerciseConfig[exerciseId] = next;
+  else delete state.exerciseConfig[exerciseId];
+  commit();
+}
+
 export function getExerciseUnit(exerciseId) {
   return state.exerciseUnits[exerciseId] || null;
 }
