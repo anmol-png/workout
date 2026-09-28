@@ -50,6 +50,9 @@ export const DAYS = [
   // Optional extra — no fixed weekday. Arms and side delts are the cheapest muscles to add a
   // session for: small, fast-recovering, and they don't compete with leg recovery.
   { key: 'arms',  name: 'Arms & Core', code: 'ARMS', subtitle: 'Biceps · Triceps · Abs', weekday: null, optional: true },
+  // A layoff block, not a session you add to the week. Pin it to any three days while an injury
+  // keeps you off the main program.
+  { key: 'recover', name: 'Cardio & Core', code: 'CARD', subtitle: 'Zone 2 · Shoulder-free core', weekday: null, optional: true },
 ];
 
 /**
@@ -575,6 +578,80 @@ export const EXERCISES = [
     ],
     substitutes: ['Barbell Rollout', 'Plank', 'Long-lever Plank', 'Side Plank', 'Hollow Body Hold'],
   },
+
+  // ---------------------------------------------------------------- CARDIO & CORE (injury block)
+  //
+  // Every exercise here is chosen on ONE constraint: nothing may load the shoulder. That rules
+  // out far more core work than people expect — hanging leg raises put the whole bodyweight
+  // through the joint in traction, the ab wheel is loaded shoulder flexion, planks and side
+  // planks are weight-bearing through the arm, and a cable crunch holds a rope overhead. What is
+  // left is supine and seated work, which is plenty: the abs do not care what your arms are doing.
+  {
+    id: 'rec-dead-bug', day: 'recover', order: 'A', name: 'Dead Bug',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 3, repRange: [8, 12], rpe: [7, 8], restSec: 45, perSide: true,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'Lower back STAYS flat on the floor. The moment it lifts, the set is over — that is the rep',
+      'quality this exercise exists to train, and it is the thing that protects your spine later.',
+      'Opposite arm and leg, slow, breathe out as you extend.',
+      'SHOULDER: if reaching overhead pulls, keep your hands on your ribs and move legs only.',
+    ],
+    substitutes: ['Dead Bug (legs only)', 'Bird Dog', 'Heel Taps'],
+  },
+  {
+    id: 'rec-reverse-crunch', day: 'recover', order: 'B', name: 'Reverse Crunch',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 60,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'Curl the PELVIS off the floor toward your ribs — hips leave the ground, not just the legs.',
+      'Lower rectus, and zero shoulder involvement: your arms are flat on the floor beside you.',
+      'Slow on the way down. That half is where the work is.',
+    ],
+    substitutes: ['Lying Leg Raise', 'Captain\u2019s Chair Knee Raise'],
+  },
+  {
+    id: 'rec-weighted-crunch', day: 'recover', order: 'C', name: 'Weighted Decline Sit-up',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 75,
+    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 5,
+    cues: [
+      'The one loadable movement in this session — hold a plate against your CHEST, not overhead,',
+      'so the shoulder carries nothing. This is what lets double progression work on abs.',
+      'Round the spine up one vertebra at a time. Do not hinge at the hips like a see-saw.',
+      'When 15 reps is comfortable, add the next plate up rather than chasing more reps.',
+    ],
+    substitutes: ['Machine Crunch', 'Decline Sit-up', 'Weighted Crunch'],
+  },
+  {
+    id: 'rec-bicycle-crunch', day: 'recover', order: 'D', name: 'Bicycle Crunch',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 2, repRange: [12, 20], rpe: [8, 9], restSec: 60, perSide: true,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'The obliques and rotation, without the side plank — which would put your whole bodyweight',
+      'through one shoulder.',
+      'Hands rest LIGHTLY beside your head. Never pull on your neck.',
+      'Slow. Turning it into a fast flail trains nothing.',
+    ],
+    substitutes: ['Russian Twist (plate at chest)', 'Side-lying Hip Raise'],
+  },
+  {
+    id: 'rec-incline-walk', day: 'recover', order: 'E', name: 'Incline Treadmill Walk',
+    metric: 'min',
+    muscles: { primary: [], secondary: ['calves', 'glutes'] },
+    sets: 1, repRange: [20, 30], rpe: [5, 6], restSec: 0,
+    increment: 0, unit: 'none', startLoad: null,
+    cues: [
+      'Start 10% incline at 4.5-5 km/h. You should be able to hold a conversation — that is zone 2,',
+      'and going harder does not make it better, it just makes it harder to recover from.',
+      'DO NOT hold the handrails. It removes most of the work and wrecks your walking mechanics.',
+      'Roughly 3,000-4,000 steps in 25 minutes, so the night walk only has to cover the rest.',
+      'PROGRESSION: build to 30 min at the same incline, then add 1% and drop back to 20.',
+    ],
+    substitutes: ['Outdoor Brisk Walk', 'Stationary Bike (zone 2)', 'Elliptical'],
+  },
 ];
 
 /**
@@ -675,6 +752,14 @@ const SUBSTITUTE_META = {
   'Hollow Body Hold': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [20, 45] },
   'Dead Hang': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [30, 60] },
   'Decline Sit-up': { unit: 'bodyweight', startLoad: 0 },
+  'Dead Bug (legs only)': { unit: 'bodyweight', startLoad: 0 },
+  'Bird Dog': { unit: 'bodyweight', startLoad: 0 },
+  'Heel Taps': { unit: 'bodyweight', startLoad: 0 },
+  'Side-lying Hip Raise': { unit: 'bodyweight', startLoad: 0 },
+  'Russian Twist (plate at chest)': { unit: 'dumbbell', startLoad: 5 },
+  'Outdoor Brisk Walk': { unit: 'none', startLoad: null, metric: 'min' },
+  'Stationary Bike (zone 2)': { unit: 'none', startLoad: null, metric: 'min' },
+  'Elliptical': { unit: 'none', startLoad: null, metric: 'min' },
   'Bike Intervals': { unit: 'none', startLoad: null },
   'Incline Treadmill': { unit: 'none', startLoad: null },
 };
@@ -745,22 +830,28 @@ export function prescription(ex) {
   const side = ex.perSide
     ? (ex.muscles.primary.some((m) => LEGS.includes(m)) ? '/leg' : '/side')
     : '';
-  return `${ex.sets} × ${reps}${isTimed(ex) ? ' s' : ''}${side} @ RPE ${rpe}`;
+  return `${ex.sets} × ${reps}${metricSuffix(ex)}${side} @ RPE ${rpe}`;
 }
 
 /** Is this exercise measured in seconds held rather than reps performed? */
 export function isTimed(ex) {
-  return ex?.metric === 'time';
+  return ex?.metric === 'time' || ex?.metric === 'min';
 }
 
-/** The word for one unit of work on this exercise — drives every label in the UI. */
-export function repWord(ex, n = 2) {
-  return isTimed(ex) ? 's' : (n === 1 ? 'rep' : 'reps');
+/** The column heading for the middle input: what you are counting. */
+export function metricLabel(ex) {
+  return ex?.metric === 'time' ? 'sec' : ex?.metric === 'min' ? 'min' : 'reps';
 }
 
-/** "45 s" or "12 reps". */
+/** The suffix that follows a number of this metric. '' for reps, so "12" stays "12". */
+export function metricSuffix(ex) {
+  return ex?.metric === 'time' ? ' s' : ex?.metric === 'min' ? ' min' : '';
+}
+
+/** "45 s" · "25 min" · "12 reps". */
 export function formatReps(n, ex) {
-  return isTimed(ex) ? `${n} s` : `${n} rep${n === 1 ? '' : 's'}`;
+  const suffix = metricSuffix(ex);
+  return suffix ? `${n}${suffix}` : `${n} rep${n === 1 ? '' : 's'}`;
 }
 
 /** Nutrition targets from program/06-Nutrition.md — shown on the Nutrition view. */

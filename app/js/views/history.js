@@ -6,7 +6,7 @@
  * you ACTUALLY did rather than the one the program originally prescribed.
  */
 
-import { getDay, getExercise, resolveExercise, isTimed, formatReps } from '../program.js';
+import { getDay, getExercise, resolveExercise, isTimed, formatReps, metricSuffix } from '../program.js';
 import * as store from '../store.js';
 import {
   sessionVolume, sessionSetCount, currentStreak, weekStart, weeklySetCounts, bestE1RM, bestSet,
@@ -202,7 +202,7 @@ function sessionText(s) {
       const w = ex.unit === 'bodyweight'
         ? ((Number(x.weight) || 0) > 0 ? `BW+${U.num(x.weight, ex.id, u)}` : 'BW')
         : `${U.num(x.weight, ex.id, u)}${u}`;
-      return `${x.isDrop ? '↳' : ''}${w}×${x.reps}${isTimed(ex) ? 's' : ''}${x.rpe ? `@${x.rpe}` : ''}`;
+      return `${x.isDrop ? '↳' : ''}${w}×${x.reps}${metricSuffix(ex).trim()}${x.rpe ? `@${x.rpe}` : ''}`;
     }).join(', ');
     lines.push(`${ex.order}. ${ex.name} — ${txt}`);
   }

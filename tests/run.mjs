@@ -39,12 +39,23 @@ const section = (s) => console.log(`\n${s}`);
 // ============================================================ program integrity
 section('Program data');
 {
-  ok('42 exercises (incl. 2 finishers + optional Arms & Core)', EXERCISES.length === 42, `got ${EXERCISES.length}`);
+  ok('47 exercises (incl. 2 finishers + 2 optional days)', EXERCISES.length === 47, `got ${EXERCISES.length}`);
   const ids = EXERCISES.map((e) => e.id);
   eq('all exercise ids unique', ids.length - new Set(ids).size, 0);
-  eq('6 sessions available', DAYS.length, 6);
+  eq('7 sessions available', DAYS.length, 7);
   eq('5 of them are programmed weekdays', DAYS.filter((d) => d.weekday).length, 5);
-  eq('Arms is the optional extra', DAYS.filter((d) => d.optional).map((d) => d.key), ['arms']);
+  eq('the optional days are Arms and the injury block',
+    DAYS.filter((d) => d.optional).map((d) => d.key), ['arms', 'recover']);
+
+  // The whole premise of the Cardio & Core block: nothing may load the shoulder. Anything
+  // hanging, weight-bearing through the hands, or held overhead breaks it.
+  const BANNED = /hanging|pull-?up|dip|plank|wheel|rollout|press|raise overhead|cable crunch/i;
+  for (const ex of EXERCISES.filter((e) => e.day === 'recover')) {
+    ok(`recover: ${ex.name} loads no shoulder`, !BANNED.test(ex.name), ex.name);
+    for (const sub of ex.substitutes || []) {
+      ok(`recover: substitute ${sub} loads no shoulder`, !BANNED.test(sub), sub);
+    }
+  }
 
   for (const d of DAYS) {
     const list = exercisesForDay(d.key);

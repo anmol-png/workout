@@ -12,6 +12,10 @@ import { confirmSheet, toast, escapeHtml } from '../ui.js';
 import * as U from '../units.js';
 import * as cloud from '../cloud.js';
 
+/** The daily step goal. 10k is a round number, not a magic one — the evidence curve for
+ *  all-cause mortality flattens around 7–9k for under-60s, so anything in that range is the win. */
+const STEP_TARGET = 10000;
+
 /** "2 min ago" · "3 h ago" — a timestamp only matters here as a freshness check. */
 function ago(iso) {
   if (!iso) return 'never';
@@ -129,6 +133,15 @@ export function render(root) {
       <label class="field"><span>Sleep last night (hours)</span>
         <input class="input" type="number" inputmode="decimal" step="0.5" id="checkin-sleep"
           value="${log.sleepHours ?? ''}" placeholder="6.5"></label>
+      <label class="field"><span>Steps today — gym walk plus the evening one</span>
+        <input class="input" type="number" inputmode="numeric" step="100" id="checkin-steps"
+          value="${log.steps ?? ''}" placeholder="${STEP_TARGET}"></label>
+      ${log.steps ? `<div class="steps-bar" aria-hidden="true"><span style="width:${Math.min(100, Math.round((log.steps / STEP_TARGET) * 100))}%"></span></div>
+        <div class="xs ${log.steps >= STEP_TARGET ? 'good' : 'muted'}" style="margin:-4px 0 10px">
+          ${log.steps >= STEP_TARGET
+            ? `${log.steps.toLocaleString()} — target hit`
+            : `${log.steps.toLocaleString()} of ${STEP_TARGET.toLocaleString()} · ${(STEP_TARGET - log.steps).toLocaleString()} to go, about ${Math.ceil((STEP_TARGET - log.steps) / 110)} min of walking`}
+        </div>` : ''}
       <div class="field"><span>Readiness — how do you actually feel?</span>
         <div class="rate" id="checkin-readiness">
           ${[1, 2, 3, 4, 5].map((n) => `<button data-r="${n}" aria-pressed="${log.readiness === n}">${n}</button>`).join('')}
@@ -191,10 +204,15 @@ function wire(root) {
 
   const bw = root.querySelector('#checkin-bw');
   const sleep = root.querySelector('#checkin-sleep');
+  const steps = root.querySelector('#checkin-steps');
 
   bw.addEventListener('change', () => {
     store.saveDailyLog(iso, { bodyweightKg: bw.value === '' ? null : U.bwToKg(bw.value) });
     toast('Weight logged');
+  });
+  steps.addEventListener('change', () => {
+    store.saveDailyLog(iso, { steps: steps.value === '' ? null : Math.round(Number(steps.value)) });
+    window.dispatchEvent(new CustomEvent('view:rerender'));
   });
   sleep.addEventListener('change', () => {
     store.saveDailyLog(iso, { sleepHours: sleep.value === '' ? null : Number(sleep.value) });

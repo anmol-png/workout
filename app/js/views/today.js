@@ -7,7 +7,7 @@
  */
 
 import {
-  DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise, isTimed,
+  DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise, isTimed, metricLabel, metricSuffix,
 } from '../program.js';
 import * as store from '../store.js';
 import {
@@ -367,12 +367,12 @@ function exerciseCard(baseEx, session) {
           : escapeHtml(target.note)}</span>
       </div>
       <div class="ex-proj">
-        Expect <b>${describeProjection(projection)}${isTimed(ex) ? ' s' : ''}</b>
+        Expect <b>${describeProjection(projection)}${metricSuffix(ex)}</b>
         <span class="dim">· ${projection[0].note === 'from your history' ? 'from your own drop-off' : 'estimated'}</span>
       </div>
       <div class="sets">
         <div class="sets-head"><span></span><span>${isBW ? `+${U.unitFor(ex.id)}`
-          : ex.unit === 'dumbbell' ? `${U.unitFor(ex.id)} ea` : U.unitFor(ex.id)}</span><span>${isTimed(ex) ? 'sec' : 'reps'}</span><span>rpe</span><span></span></div>
+          : ex.unit === 'dumbbell' ? `${U.unitFor(ex.id)} ea` : U.unitFor(ex.id)}</span><span>${metricLabel(ex)}</span><span>rpe</span><span></span></div>
         ${rows.join('')}
         <div class="set-actions">
           ${ex.unit === 'barbell' ? `<button class="btn sm ghost" data-act="plates">Plates</button>` : ''}

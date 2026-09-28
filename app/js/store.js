@@ -43,7 +43,7 @@ function emptyState() {
     },
     /** Session[] — one per completed or in-progress training day. */
     sessions: [],
-    /** dailyLogs[isoDate] = { bodyweightKg, sleepHours, readiness, note } */
+    /** dailyLogs[isoDate] = { bodyweightKg, sleepHours, readiness, steps, note } */
     dailyLogs: {},
     /** exerciseId -> substitute name, when the user swaps an exercise. */
     substitutions: {},

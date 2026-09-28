@@ -42,6 +42,13 @@ export const WARMUP = {
     ['Band pull-aparts × 20 + shoulder circles', 'Shoulders are doing their second session this week — warm them properly'],
     ['Scap push-ups × 10, scap pull-ups × 8', 'Sets the shoulder blades for both pressing and pulling'],
   ],
+  recover: [
+    ['3 min flat walk, easy', 'Raises core temperature before the incline goes up'],
+    ['Cat-cow × 10', 'Gets the spine moving through flexion and extension before you load it'],
+    ['Glute bridges × 15', 'Wakes the glutes so the incline walk does not become all quads'],
+    ['Dead bug × 5/side, slow', 'A rehearsal of the brace — the first working set should not be the first time'],
+    ['SHOULDER: nothing overhead, no hanging, no weight through the hands', 'The whole point of this block is to let it settle'],
+  ],
   arms: [
     ['3 min easy bike or rower', 'Core temperature and blood flow'],
     ['Band pull-aparts × 20', 'Shoulders and upper back before pressing and curling'],
