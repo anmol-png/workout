@@ -20,7 +20,7 @@ globalThis.CustomEvent = class { constructor(t, o) { this.type = t; Object.assig
 const APP = process.env.APP_DIR || '/Users/anmolkhilwani/workout/app/js';
 const { computeNextTarget, earnedIncrement, ACTION, isStalled, describePerformance, projectSets: projectSetsFn } = await import(`${APP}/progression.js`);
 const { computePlates, nearestLoadable } = await import(`${APP}/plates.js`);
-const { getExercise, EXERCISES, DAYS, exercisesForDay } = await import(`${APP}/program.js`);
+const { getExercise, EXERCISES, DAYS, exercisesForDay, videosFor } = await import(`${APP}/program.js`);
 const statsMod = await import(`${APP}/stats.js`);
 const store = await import(`${APP}/store.js`);
 
@@ -39,7 +39,7 @@ const section = (s) => console.log(`\n${s}`);
 // ============================================================ program integrity
 section('Program data');
 {
-  ok('46 exercises (incl. 2 finishers + 2 optional days)', EXERCISES.length === 46, `got ${EXERCISES.length}`);
+  ok('48 exercises (incl. 2 finishers + 2 optional days)', EXERCISES.length === 48, `got ${EXERCISES.length}`);
   const ids = EXERCISES.map((e) => e.id);
   eq('all exercise ids unique', ids.length - new Set(ids).size, 0);
   eq('7 sessions available', DAYS.length, 7);
@@ -58,6 +58,34 @@ section('Program data');
     for (const sub of ex.substitutes || []) {
       ok(`recover: substitute ${sub} loads no shoulder`, !BANNED.test(sub), sub);
     }
+  }
+
+  // Every exercise has somewhere to look up the movement — the vetted table for the ones that
+  // needed it, a YouTube search for everything else. The point of the test is that the fallback
+  // can never be empty, because "I don't know how to do this" is a reason not to train.
+  {
+    const seen = new Set();
+    for (const ex of EXERCISES) {
+      for (const name of [ex.name, ...(ex.substitutes || [])]) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        const vids = videosFor(name);
+        ok(`${name}: has at least one video link`, vids.length > 0);
+        for (const v of vids) {
+          ok(`${name}: ${v.label} is an https youtube link`,
+            /^https:\/\/www\.youtube\.com\//.test(v.url), v.url);
+          ok(`${name}: ${v.label} names its channel`, !!v.channel);
+        }
+      }
+    }
+    // A vetted entry is a specific video; an unvetted one must be a search, never a guessed id.
+    for (const name of ['Dead Bug', 'Plank', 'Machine Crunch', 'Lying Leg Raise', 'Reverse Crunch']) {
+      ok(`${name}: vetted, points at a specific video`,
+        videosFor(name).every((v) => v.vetted && v.url.includes('/watch?v=')));
+    }
+    ok('an unlisted exercise falls back to a search, not a guessed video id',
+      videosFor('Barbell Bench Press').every((v) => !v.vetted && v.url.includes('/results?search_query=')));
+    console.log(`  ${seen.size} distinct movement names all resolve to a video link`);
   }
 
   for (const d of DAYS) {

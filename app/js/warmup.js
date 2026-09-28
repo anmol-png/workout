@@ -46,7 +46,7 @@ export const WARMUP = {
     ['3 min flat walk, easy', 'Raises core temperature before the incline goes up'],
     ['Cat-cow × 10', 'Gets the spine moving through flexion and extension before you load it'],
     ['Glute bridges × 15', 'Wakes the glutes so the incline walk does not become all quads'],
-    ['Dead bug × 5/side, slow', 'A rehearsal of the brace — the first working set should not be the first time'],
+    ['Heel taps × 8/side, slow', 'The easiest dead bug there is — a rehearsal of the brace, without spending the working sets'],
     ['SHOULDER: nothing overhead, no hanging, no weight through the hands', 'The whole point of this block is to let it settle'],
   ],
   arms: [

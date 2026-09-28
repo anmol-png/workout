@@ -8,6 +8,7 @@
 
 import {
   DAYS, exercisesForDay, getDay, dayForWeekday, prescription, getExercise, resolveExercise, isTimed, metricLabel, metricSuffix,
+  videosFor,
 } from '../program.js';
 import * as store from '../store.js';
 import {
@@ -749,12 +750,32 @@ function finish(session, exercises) {
 
 // ---------------------------------------------------------------- sheets
 
+/**
+ * Watch-it links for an exercise, by the name it is being performed under.
+ *
+ * Opened in a new tab rather than embedded: an iframe would need the network mid-session, and the
+ * whole point of this app is that it works with no signal. A link that fails just does nothing.
+ */
+function videoBlock(name) {
+  const vids = videosFor(name);
+  return `<div class="video-list">
+    ${vids.map((v) => `<a class="video-link" href="${escapeHtml(v.url)}" target="_blank" rel="noopener">
+      <span class="video-play" aria-hidden="true">▶</span>
+      <span class="grow">
+        <b class="small">${escapeHtml(v.label)}</b>
+        <span class="xs muted block">${escapeHtml(v.channel)}${v.vetted ? '' : ' \u00b7 not vetted \u2014 pick one that looks clear'}</span>
+      </span>
+    </a>`).join('')}
+  </div>`;
+}
+
 function showInfo(ex) {
   const sub = store.getSubstitution(ex.id);
   const override = store.getExerciseUnit(ex.id);
   openSheet(`
     <h2>${escapeHtml(sub || ex.name)}</h2>
     <p class="sheet-sub">${prescription(ex)} · rest ${formatRest(ex.restSec)}</p>
+    ${videoBlock(sub || ex.name)}
     <ul class="cue-list">${ex.cues.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
     <div class="divider"></div>
     <div class="row between">

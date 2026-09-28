@@ -322,6 +322,21 @@ button { cursor: pointer; border: none; background: none; }
 }
 .sheet h2 { font-size: 19px; margin-bottom: 3px; }
 .sheet-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+/* demonstration videos — the top of the info sheet, above the cues */
+.video-list { display: grid; gap: 8px; margin: 2px 0 14px; }
+.video-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface-2); color: var(--text); text-decoration: none;
+}
+.video-link:active { background: var(--line); }
+.video-play {
+  display: grid; place-items: center; flex: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent); color: #06101f; font-size: 12px;
+}
+.block { display: block; }
+
 .cue-list { list-style: none; padding: 0; margin: 0; }
 .cue-list li {
   position: relative; padding: 7px 0 7px 20px;

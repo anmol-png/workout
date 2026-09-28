@@ -583,8 +583,14 @@ export const EXERCISES = [
   //
   // Every exercise here is chosen on ONE constraint: nothing may load the shoulder. That rules out
   // more than expected — hanging leg raises put bodyweight through the joint in traction, the ab
-  // wheel is loaded shoulder flexion, and a cable crunch holds a rope overhead. Three movements,
-  // all of them ones you have done before, ordered so each gets the effort it needs.
+  // wheel is loaded shoulder flexion, and a cable crunch holds a rope overhead.
+  //
+  // Five movements, in an order with a reason: the two that need the most CONTROL come while you
+  // are fresh (A, C), the one that can be LOADED sits between them so the lower abs get a break
+  // (B), and the two that are held rather than counted come last (D, E) — an isometric has no
+  // technique left to ruin once you are tired.
+  //
+  // Every one has a demonstration video attached; see VIDEOS at the foot of this file.
   {
     id: 'rec-leg-raise', day: 'recover', order: 'A', name: 'Lying Leg Raise',
     muscles: { primary: ['core'], secondary: [] },
@@ -593,44 +599,75 @@ export const EXERCISES = [
     cues: [
       'FIRST, because it is the one that falls apart when you are tired — control is the whole lift.',
       'Lying on your back, hands flat beside you. No hanging, so the shoulder carries nothing.',
-      'Press the lower back INTO the floor and keep it there. If it arches, stop the set.',
+      'Press the lower back INTO the floor and keep it there. If it arches, the set is over.',
       'Lower slowly to just above the floor. That half is the work; dropping the legs is not.',
-      'Too hard? Bend the knees. Too easy? Slow the lowering to four seconds.',
+      'TOO HARD? Bend the knees to 90°. TOO EASY? Take four seconds on the way down.',
     ],
-    substitutes: ['Reverse Crunch', 'Dead Bug', 'Captain\u2019s Chair Knee Raise'],
+    substitutes: ['Reverse Crunch', 'Dead Bug', 'Captain’s Chair Knee Raise'],
   },
   {
     id: 'rec-machine-crunch', day: 'recover', order: 'B', name: 'Machine Crunch',
     muscles: { primary: ['core'], secondary: [] },
-    sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 75,
-    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 25,
+    // startLoad is deliberately null, not a number: the card then says "find a load that lands at
+    // the target RPE" instead of asserting a weight for a machine whose stack may not be usable.
+    sets: 3, repRange: [12, 20], rpe: [9, 9], restSec: 75,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: null,
     cues: [
-      'The ONLY loadable movement here, which is why it gets a real load and real progression —',
-      'abs grow from progressive overload exactly like everything else.',
-      'Pads on the chest, so the shoulder does nothing.',
-      'Round the spine down toward the hips. Do not just fold at the waist.',
-      'Hit 15 on all three sets, then add a plate and drop back to 10.',
+      'THE MACHINE: the seated one where pads rest on your chest or shoulders and you curl forward.',
+      'Sit tall, hook your feet under the roller, pads on the collarbones — the shoulder does nothing.',
+      'Round the spine and drive the ribs DOWN toward the hips. It is a curl, not a bend at the waist.',
+      'LOADING IT: pin in the stack on the side. Pick the lightest plate you cannot do 20 reps with.',
+      'CANNOT LOAD IT? Do it at bodyweight and log 0 — the app tracks reps, so more reps IS progress.',
+      'Once you clear 20 on all three sets, add one plate and drop back to 12.',
     ],
-    substitutes: ['Cable Crunch', 'Weighted Decline Sit-up', 'Decline Sit-up'],
+    substitutes: ['Cable Crunch', 'Floor Crunch', 'Weighted Decline Sit-up', 'Decline Sit-up'],
   },
   {
-    id: 'rec-plank', day: 'recover', order: 'C', name: 'Plank',
+    id: 'rec-reverse-crunch', day: 'recover', order: 'C', name: 'Reverse Crunch',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 60,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'Not the same as the leg raise, which is why it is here: the HIPS come off the floor.',
+      'On your back, knees bent at 90°, thighs vertical. Curl the knees toward your chest.',
+      'The rep is the pelvis tilting and the hips lifting an inch or two — not the knees travelling.',
+      'If you are swinging your legs to get there, the set is done. Two inches under control beats six.',
+      'TOO EASY? Pause one second at the top with the hips up.',
+    ],
+    substitutes: ['Lying Leg Raise', 'Dead Bug', 'Captain’s Chair Knee Raise'],
+  },
+  {
+    id: 'rec-dead-bug', day: 'recover', order: 'D', name: 'Dead Bug',
+    muscles: { primary: ['core'], secondary: [] },
+    sets: 2, repRange: [8, 12], rpe: [7, 8], restSec: 45,
+    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
+    cues: [
+      'IT IS MEANT TO FEEL HARD — but hard in the abs, not the back. If the back arches, it is too hard.',
+      'The fix is always the same: make the lever shorter. Do not push through an arched back.',
+      'EASIEST: heels only. Knees stay bent, tap one heel to the floor, bring it back. Arms stay up.',
+      'THEN: one leg straightens at a time, arms still. THEN: opposite arm and leg together.',
+      'Count 8-12 PER SIDE. Breathe out as the limb goes away from you — that is what holds the ribs down.',
+      'Slow. Five seconds a rep is normal here. Speed is how this one stops working.',
+    ],
+    substitutes: ['Dead Bug (legs only)', 'Bird Dog', 'Hollow Body Hold'],
+  },
+  {
+    id: 'rec-plank', day: 'recover', order: 'E', name: 'Plank',
     metric: 'time',
     muscles: { primary: ['core'], secondary: [] },
     sets: 2, repRange: [30, 60], rpe: [8, 8], restSec: 60,
     increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
     cues: [
-      'LAST, on purpose. It is an isometric — there is no technique left to ruin once you are tired,',
-      'and doing it first would leave you shaky for the leg raises.',
-      'On your FOREARMS, not your hands. Elbows under shoulders, ribs down, glutes squeezed.',
-      'A straight line head to heels. A sagging hip means the set is finished, whatever the clock says.',
+      'LAST, on purpose. It is an isometric — there is no technique left to ruin once you are tired.',
+      'On your FOREARMS, not your hands. Elbows under shoulders, ribs down, glutes squeezed hard.',
+      'A straight line head to heels. A sagging hip ends the set, whatever the clock says.',
       'SHOULDER: if it pulls at all, stop and do a dead bug instead. Nothing here is worth a setback.',
       'Past 60 seconds, do not add time — it stops training much. Elevate your feet instead.',
     ],
     substitutes: ['Dead Bug', 'Hollow Body Hold', 'Bird Dog'],
   },
   {
-    id: 'rec-incline-walk', day: 'recover', order: 'D', name: 'Incline Treadmill Walk',
+    id: 'rec-incline-walk', day: 'recover', order: 'F', name: 'Incline Treadmill Walk',
     metric: 'min',
     muscles: { primary: [], secondary: ['calves', 'glutes'] },
     sets: 1, repRange: [20, 30], rpe: [5, 6], restSec: 0,
@@ -747,6 +784,7 @@ const SUBSTITUTE_META = {
   'Dead Bug (legs only)': { unit: 'bodyweight', startLoad: 0 },
   'Dead Bug': { unit: 'bodyweight', startLoad: 0 },
   'Reverse Crunch': { unit: 'bodyweight', startLoad: 0 },
+  'Floor Crunch': { unit: 'bodyweight', startLoad: 0 },
   'Weighted Decline Sit-up': { unit: 'dumbbell', startLoad: 5 },
   'Bird Dog': { unit: 'bodyweight', startLoad: 0 },
   'Heel Taps': { unit: 'bodyweight', startLoad: 0 },
@@ -863,3 +901,60 @@ export const NUTRITION = {
 /** Mesocycle shape — 5 accumulation weeks then a deload, from 00-Program-Overview.md. */
 export const BLOCK_WEEKS = 6;
 export const DELOAD_WEEK = 6;
+
+// ---------------------------------------------------------------- demonstration videos
+
+/**
+ * Demonstration videos, keyed by exercise NAME — deliberately not by id.
+ *
+ * A swap changes the name and nothing else, so keying on the id would happily play a leg-raise
+ * clip for a plank. Keying on the name means all 109 substitutes are covered by the same table
+ * with no second mechanism, and a swap picks up the right clip for free.
+ *
+ * Anything with no entry falls back to a YouTube search for its own name, so every exercise in
+ * the app — including ones added later — has something to tap. Each URL below was checked against
+ * YouTube's oEmbed endpoint on 28 Sep 2026; the channel names are the ones it returned.
+ */
+const VIDEOS = {
+  'Lying Leg Raise': [
+    { label: 'Form and the mistakes to avoid', channel: 'FIT.nl', url: 'https://www.youtube.com/watch?v=sY2ZgV2Sj_s' },
+    { label: 'Why the lower abs need this', channel: 'ATHLEAN-X', url: 'https://www.youtube.com/watch?v=sVR4mbOC82w' },
+  ],
+  'Machine Crunch': [
+    { label: 'How to set up and use it', channel: 'Hammer Fitness', url: 'https://www.youtube.com/watch?v=0kLWho-pEdQ' },
+    { label: 'Proper form, close up', channel: 'FIT.nl', url: 'https://www.youtube.com/watch?v=G8937xqkxDo' },
+  ],
+  'Reverse Crunch': [
+    { label: 'Three steps to proper form', channel: 'Born Fitness', url: 'https://www.youtube.com/watch?v=nYcE7-Dhpzk' },
+    { label: 'Which ab exercises are worth doing', channel: 'ATHLEAN-X', url: 'https://www.youtube.com/watch?v=TqXwI1MWZks' },
+  ],
+  'Dead Bug': [
+    { label: 'Start here — physio walkthrough', channel: 'Hinge Health', url: 'https://www.youtube.com/watch?v=GbSC02oU3To' },
+    { label: 'If it feels too hard: 5 easier versions', channel: 'Dr. Carl Baird', url: 'https://www.youtube.com/watch?v=wZ9iVzcwgGM' },
+    { label: 'Positioning and common mistakes', channel: 'Dr. Carl Baird', url: 'https://www.youtube.com/watch?v=JrcoGEZn6L4' },
+  ],
+  'Dead Bug (legs only)': [
+    { label: 'The easier versions, in order', channel: 'Dr. Carl Baird', url: 'https://www.youtube.com/watch?v=wZ9iVzcwgGM' },
+  ],
+  'Plank': [
+    { label: 'What a correct plank looks like', channel: 'Airrosti Rehab Centers', url: 'https://www.youtube.com/watch?v=H5nue1SRGOU' },
+    { label: 'How core training actually works', channel: 'Jeff Nippard', url: 'https://www.youtube.com/watch?v=1G0y8D5rFDc' },
+  ],
+};
+
+/**
+ * Videos for an exercise by name, never empty.
+ *
+ * The fallback is a search rather than a guessed video id: a search URL cannot 404, it stays
+ * current as better videos are published, and it is honest about the fact that nobody vetted it.
+ */
+export function videosFor(name) {
+  const found = VIDEOS[name];
+  if (found) return found.map((v) => ({ ...v, vetted: true }));
+  return [{
+    label: `Search "${name}"`,
+    channel: 'YouTube',
+    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`how to ${name} proper form`)}`,
+    vetted: false,
+  }];
+}
