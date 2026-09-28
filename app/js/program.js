@@ -581,64 +581,56 @@ export const EXERCISES = [
 
   // ---------------------------------------------------------------- CARDIO & CORE (injury block)
   //
-  // Every exercise here is chosen on ONE constraint: nothing may load the shoulder. That rules
-  // out far more core work than people expect — hanging leg raises put the whole bodyweight
-  // through the joint in traction, the ab wheel is loaded shoulder flexion, planks and side
-  // planks are weight-bearing through the arm, and a cable crunch holds a rope overhead. What is
-  // left is supine and seated work, which is plenty: the abs do not care what your arms are doing.
+  // Every exercise here is chosen on ONE constraint: nothing may load the shoulder. That rules out
+  // more than expected — hanging leg raises put bodyweight through the joint in traction, the ab
+  // wheel is loaded shoulder flexion, and a cable crunch holds a rope overhead. Three movements,
+  // all of them ones you have done before, ordered so each gets the effort it needs.
   {
-    id: 'rec-dead-bug', day: 'recover', order: 'A', name: 'Dead Bug',
-    muscles: { primary: ['core'], secondary: [] },
-    sets: 3, repRange: [8, 12], rpe: [7, 8], restSec: 45, perSide: true,
-    increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
-    cues: [
-      'Lower back STAYS flat on the floor. The moment it lifts, the set is over — that is the rep',
-      'quality this exercise exists to train, and it is the thing that protects your spine later.',
-      'Opposite arm and leg, slow, breathe out as you extend.',
-      'SHOULDER: if reaching overhead pulls, keep your hands on your ribs and move legs only.',
-    ],
-    substitutes: ['Dead Bug (legs only)', 'Bird Dog', 'Heel Taps'],
-  },
-  {
-    id: 'rec-reverse-crunch', day: 'recover', order: 'B', name: 'Reverse Crunch',
+    id: 'rec-leg-raise', day: 'recover', order: 'A', name: 'Lying Leg Raise',
     muscles: { primary: ['core'], secondary: [] },
     sets: 3, repRange: [10, 15], rpe: [8, 9], restSec: 60,
     increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
     cues: [
-      'Curl the PELVIS off the floor toward your ribs — hips leave the ground, not just the legs.',
-      'Lower rectus, and zero shoulder involvement: your arms are flat on the floor beside you.',
-      'Slow on the way down. That half is where the work is.',
+      'FIRST, because it is the one that falls apart when you are tired — control is the whole lift.',
+      'Lying on your back, hands flat beside you. No hanging, so the shoulder carries nothing.',
+      'Press the lower back INTO the floor and keep it there. If it arches, stop the set.',
+      'Lower slowly to just above the floor. That half is the work; dropping the legs is not.',
+      'Too hard? Bend the knees. Too easy? Slow the lowering to four seconds.',
     ],
-    substitutes: ['Lying Leg Raise', 'Captain\u2019s Chair Knee Raise'],
+    substitutes: ['Reverse Crunch', 'Dead Bug', 'Captain\u2019s Chair Knee Raise'],
   },
   {
-    id: 'rec-weighted-crunch', day: 'recover', order: 'C', name: 'Weighted Decline Sit-up',
+    id: 'rec-machine-crunch', day: 'recover', order: 'B', name: 'Machine Crunch',
     muscles: { primary: ['core'], secondary: [] },
     sets: 3, repRange: [10, 15], rpe: [9, 9], restSec: 75,
-    increment: INCREMENT.DUMBBELL, unit: 'dumbbell', startLoad: 5,
+    increment: INCREMENT.MACHINE, unit: 'machine', startLoad: 25,
     cues: [
-      'The one loadable movement in this session — hold a plate against your CHEST, not overhead,',
-      'so the shoulder carries nothing. This is what lets double progression work on abs.',
-      'Round the spine up one vertebra at a time. Do not hinge at the hips like a see-saw.',
-      'When 15 reps is comfortable, add the next plate up rather than chasing more reps.',
+      'The ONLY loadable movement here, which is why it gets a real load and real progression —',
+      'abs grow from progressive overload exactly like everything else.',
+      'Pads on the chest, so the shoulder does nothing.',
+      'Round the spine down toward the hips. Do not just fold at the waist.',
+      'Hit 15 on all three sets, then add a plate and drop back to 10.',
     ],
-    substitutes: ['Machine Crunch', 'Decline Sit-up', 'Weighted Crunch'],
+    substitutes: ['Cable Crunch', 'Weighted Decline Sit-up', 'Decline Sit-up'],
   },
   {
-    id: 'rec-bicycle-crunch', day: 'recover', order: 'D', name: 'Bicycle Crunch',
+    id: 'rec-plank', day: 'recover', order: 'C', name: 'Plank',
+    metric: 'time',
     muscles: { primary: ['core'], secondary: [] },
-    sets: 2, repRange: [12, 20], rpe: [8, 9], restSec: 60, perSide: true,
+    sets: 2, repRange: [30, 60], rpe: [8, 8], restSec: 60,
     increment: INCREMENT.BODYWEIGHT, unit: 'bodyweight', startLoad: 0,
     cues: [
-      'The obliques and rotation, without the side plank — which would put your whole bodyweight',
-      'through one shoulder.',
-      'Hands rest LIGHTLY beside your head. Never pull on your neck.',
-      'Slow. Turning it into a fast flail trains nothing.',
+      'LAST, on purpose. It is an isometric — there is no technique left to ruin once you are tired,',
+      'and doing it first would leave you shaky for the leg raises.',
+      'On your FOREARMS, not your hands. Elbows under shoulders, ribs down, glutes squeezed.',
+      'A straight line head to heels. A sagging hip means the set is finished, whatever the clock says.',
+      'SHOULDER: if it pulls at all, stop and do a dead bug instead. Nothing here is worth a setback.',
+      'Past 60 seconds, do not add time — it stops training much. Elevate your feet instead.',
     ],
-    substitutes: ['Russian Twist (plate at chest)', 'Side-lying Hip Raise'],
+    substitutes: ['Dead Bug', 'Hollow Body Hold', 'Bird Dog'],
   },
   {
-    id: 'rec-incline-walk', day: 'recover', order: 'E', name: 'Incline Treadmill Walk',
+    id: 'rec-incline-walk', day: 'recover', order: 'D', name: 'Incline Treadmill Walk',
     metric: 'min',
     muscles: { primary: [], secondary: ['calves', 'glutes'] },
     sets: 1, repRange: [20, 30], rpe: [5, 6], restSec: 0,
@@ -753,6 +745,9 @@ const SUBSTITUTE_META = {
   'Dead Hang': { unit: 'bodyweight', startLoad: 0, metric: 'time', repRange: [30, 60] },
   'Decline Sit-up': { unit: 'bodyweight', startLoad: 0 },
   'Dead Bug (legs only)': { unit: 'bodyweight', startLoad: 0 },
+  'Dead Bug': { unit: 'bodyweight', startLoad: 0 },
+  'Reverse Crunch': { unit: 'bodyweight', startLoad: 0 },
+  'Weighted Decline Sit-up': { unit: 'dumbbell', startLoad: 5 },
   'Bird Dog': { unit: 'bodyweight', startLoad: 0 },
   'Heel Taps': { unit: 'bodyweight', startLoad: 0 },
   'Side-lying Hip Raise': { unit: 'bodyweight', startLoad: 0 },
